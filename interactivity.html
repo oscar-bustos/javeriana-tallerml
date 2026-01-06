@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Regresión y Función de Costo</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #f0f2f5;
+            padding: 20px;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 95%;
+            max-width: 1200px;
+        }
+        h1 { text-align: center; color: #2c3e50; margin-bottom: 5px; }
+        p.subtitle { text-align: center; color: #7f8c8d; margin-top: 0; }
+        
+        .dashboard {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .plot-container {
+            flex: 1;
+            min-width: 400px;
+            height: 450px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+        }
+
+        /* Controles */
+        .controls-wrapper {
+            background-color: #e8f4f8;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 5px solid #3498db;
+        }
+        .controls {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .control-group { flex: 1; min-width: 200px; text-align: center; }
+        input[type=range] { width: 100%; cursor: pointer; }
+        label { font-weight: bold; display: block; margin-bottom: 10px; color: #34495e; }
+        span.value { background: #3498db; color: white; padding: 2px 8px; border-radius: 4px; }
+        
+        .metrics { text-align: center; font-size: 1.1em; margin-bottom: 10px; }
+        #mseDisplay { color: #e74c3c; font-weight: bold; font-size: 1.3em; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Simulador de Regresión Lineal</h1>
+        <p class="subtitle">Visualizando el Espacio de Datos (Izquierda) y el Espacio de Parámetros (Derecha)</p>
+
+        <div class="metrics">
+            Error Actual (MSE): <span id="mseDisplay">0.00</span>
+        </div>
+
+        <div class="controls-wrapper">
+            <div class="controls">
+                <div class="control-group">
+                    <label for="slope">Pendiente (m): <span id="slopeVal" class="value">1.0</span></label>
+                    <input type="range" id="slope" min="-5" max="10" step="0.1" value="1">
+                </div>
+                <div class="control-group">
+                    <label for="intercept">Intercepto (b): <span id="interceptVal" class="value">0.0</span></label>
+                    <input type="range" id="intercept" min="-5" max="10" step="0.1" value="0">
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard">
+            <div id="plotRegression" class="plot-container"></div>
+            <div id="plotCost" class="plot-container"></div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. Generación de Datos ---
+        const N = 30;
+        let xData = [];
+        let yData = [];
+        
+        // Relación real: y = 3x + 4 + ruido
+        // Usamos Math.random semilla fija "casera" para que siempre salga igual al recargar
+        let seed = 123;
+        function random() {
+            let x = Math.sin(seed++) * 10000;
+            return x - Math.floor(x);
+        }
+
+        for (let i = 0; i < N; i++) {
+            let x = random() * 2; 
+            let noise = (random() - 0.5) * 4;
+            let y = 3 * x + 4 + noise;
+            xData.push(x);
+            yData.push(y);
+        }
+
+        // --- 2. Elementos DOM ---
+        const sliderM = document.getElementById('slope');
+        const sliderB = document.getElementById('intercept');
+        const labelM = document.getElementById('slopeVal');
+        const labelB = document.getElementById('interceptVal');
+        const labelMSE = document.getElementById('mseDisplay');
+
+        // --- 3. Función auxiliar para calcular MSE ---
+        function calculateMSE(m, b) {
+            let sumError = 0;
+            for(let i=0; i<N; i++) {
+                let pred = m * xData[i] + b;
+                sumError += Math.pow(yData[i] - pred, 2);
+            }
+            return sumError / N;
+        }
+
+        // --- 4. Función Principal de Actualización ---
+        function updatePlots() {
+            // Valores actuales
+            let currentM = parseFloat(sliderM.value);
+            let currentB = parseFloat(sliderB.value);
+
+            // Actualizar textos
+            labelM.innerText = currentM.toFixed(1);
+            labelB.innerText = currentB.toFixed(1);
+
+            // --- GRÁFICO 1: REGRESIÓN (IZQUIERDA) ---
+            let yPred = xData.map(x => currentM * x + currentB);
+            
+            // Líneas rojas de error (Shapes)
+            let errorLines = [];
+            for (let i = 0; i < N; i++) {
+                errorLines.push({
+                    type: 'line',
+                    x0: xData[i], y0: yData[i],
+                    x1: xData[i], y1: yPred[i],
+                    line: { color: 'red', width: 1, dash: 'dot' }
+                });
+            }
+
+            // Datos para Plotly (Scatter y Línea)
+            let tracePoints = {
+                x: xData, y: yData,
+                mode: 'markers', name: 'Datos',
+                marker: { size: 10, color: '#2980b9' }
+            };
+            
+            let traceLine = {
+                x: [0, 2.5],
+                y: [currentB, currentM * 2.5 + currentB],
+                mode: 'lines', name: 'Predicción',
+                line: { color: '#27ae60', width: 4 }
+            };
+
+            let layoutReg = {
+                title: 'Espacio de Datos (x, y)',
+                xaxis: { title: 'Variable X', range: [-0.1, 2.3] },
+                yaxis: { title: 'Variable Y', range: [0, 15] },
+                shapes: errorLines,
+                margin: { t: 40, b: 40, l: 40, r: 20 },
+                showlegend: false
+            };
+
+            // --- GRÁFICO 2: CURVA DE COSTO (DERECHA) ---
+            // Aquí calculamos cómo cambia el error si movemos SOLO la pendiente (m)
+            // manteniendo el intercepto (b) fijo en su valor actual.
+            
+            let mRangeX = [];
+            let errorCurveY = [];
+            
+            // Generamos puntos para dibujar la parábola completa (de -5 a 10)
+            for(let m = -5; m <= 10; m += 0.5) {
+                mRangeX.push(m);
+                errorCurveY.push(calculateMSE(m, currentB));
+            }
+
+            let currentMSE = calculateMSE(currentM, currentB);
+            labelMSE.innerText = currentMSE.toFixed(2);
+
+            // Trazo 1: La curva completa (Parábola)
+            let traceCurve = {
+                x: mRangeX,
+                y: errorCurveY,
+                mode: 'lines',
+                name: 'Curva de Error',
+                line: { color: '#bdc3c7', width: 3, dash: 'dash' }
+            };
+
+            // Trazo 2: El punto actual (La "bolita")
+            let traceBall = {
+                x: [currentM],
+                y: [currentMSE],
+                mode: 'markers',
+                name: 'Tu Posición',
+                marker: { size: 16, color: '#e74c3c', line: {color: 'black', width: 2} }
+            };
+
+            let layoutCost = {
+                title: `Función de Costo (J) para b=${currentB}`,
+                xaxis: { title: 'Valor de Pendiente (m)' },
+                yaxis: { title: 'Error (MSE)' },
+                margin: { t: 40, b: 40, l: 40, r: 20 },
+                showlegend: false,
+                annotations: [{
+                    x: currentM,
+                    y: currentMSE,
+                    text: 'Estás aquí',
+                    showarrow: true,
+                    arrowhead: 2,
+                    ax: 0,
+                    ay: -40
+                }]
+            };
+
+            // Renderizar ambos gráficos
+            Plotly.react('plotRegression', [tracePoints, traceLine], layoutReg);
+            Plotly.react('plotCost', [traceCurve, traceBall], layoutCost);
+        }
+
+        // Listeners
+        sliderM.addEventListener('input', updatePlots);
+        sliderB.addEventListener('input', updatePlots);
+
+        // Inicio
+        updatePlots();
+
+    </script>
+</body>
+</html>
