@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Importancia de Características - California Housing</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2c3e50;
+            --accent-color: #e74c3c;
+            --bg-light: #f4f7f6;
+            --card-bg: #ffffff;
+            --shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-light);
+            padding: 20px;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: var(--secondary-color);
+        }
+
+        .container {
+            background-color: var(--card-bg);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: var(--shadow);
+            width: 95%;
+            max-width: 1400px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            margin: 0;
+            color: var(--secondary-color);
+            font-size: 2em;
+        }
+
+        p.subtitle {
+            color: #7f8c8d;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: var(--primary-color);
+            color: white;
+            text-decoration: none;
+            border-radius: 30px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Layout Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            /* Controls left, Charts right */
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Controls Section */
+        .controls-panel {
+            background-color: #eef2f7;
+            padding: 20px;
+            border-radius: 10px;
+            height: fit-content;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+            background: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        .control-group input[type=range] {
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .val-display {
+            float: right;
+            color: var(--primary-color);
+        }
+
+        /* Visualization Section */
+        .viz-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .prediction-card {
+            background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+
+        .prediction-card h2 {
+            margin: 0;
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .prediction-card .price {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .prediction-card .note {
+            font-size: 0.8em;
+            opacity: 0.8;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #eee;
+            height: 400px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <a href="../index.html" class="btn">← Volver al Menú</a>
+
+        <header>
+            <h1>Importancia de Características</h1>
+            <p class="subtitle">Dataset: California Housing. Ajusta los valores para ver cómo afectan el precio.</p>
+        </header>
+
+        <div class="dashboard-grid">
+
+            <!-- Controls (Inputs) -->
+            <div class="controls-panel">
+                <h3>Variables de Entrada</h3>
+
+                <div class="control-group">
+                    <label>MedInc (Ingreso Medio) <span id="val_MedInc" class="val-display"></span></label>
+                    <input type="range" id="in_MedInc" min="0" max="15" step="0.1" value="3.5">
+                    <small style="color:#777">1 = $10k USD</small>
+                </div>
+
+                <div class="control-group">
+                    <label>HouseAge (Edad Casa) <span id="val_HouseAge" class="val-display"></span></label>
+                    <input type="range" id="in_HouseAge" min="1" max="52" step="1" value="25">
+                </div>
+
+                <div class="control-group">
+                    <label>AveRooms (Prom. Habitaciones) <span id="val_AveRooms" class="val-display"></span></label>
+                    <input type="range" id="in_AveRooms" min="1" max="100" step="0.1" value="5.4">
+                </div>
+
+                <div class="control-group">
+                    <label>AveBedrms (Prom. Dormitorios) <span id="val_AveBedrms" class="val-display"></span></label>
+                    <input type="range" id="in_AveBedrms" min="0.5" max="10" step="0.1" value="1.1">
+                </div>
+
+                <div class="control-group">
+                    <label>Population (Población) <span id="val_Population" class="val-display"></span></label>
+                    <input type="range" id="in_Population" min="100" max="10000" step="100" value="1425">
+                </div>
+
+                <div class="control-group">
+                    <label>AveOccup (Ocupantes Prom.) <span id="val_AveOccup" class="val-display"></span></label>
+                    <input type="range" id="in_AveOccup" min="1" max="50" step="0.1" value="3.0">
+                </div>
+
+                <div class="control-group">
+                    <label>Latitude <span id="val_Latitude" class="val-display"></span></label>
+                    <input type="range" id="in_Latitude" min="32" max="42" step="0.1" value="35.6">
+                </div>
+
+                <div class="control-group">
+                    <label>Longitude <span id="val_Longitude" class="val-display"></span></label>
+                    <input type="range" id="in_Longitude" min="-124" max="-114" step="0.1" value="-119.6">
+                </div>
+            </div>
+
+            <!-- Visualization -->
+            <div class="viz-panel">
+
+                <!-- Prediction Output -->
+                <div class="prediction-card">
+                    <h2>Precio Predicho (MedHouseVal)</h2>
+                    <div class="price" id="predPrice">$0</div>
+                    <p class="note">Valor en cientos de miles de dólares ($100,000)</p>
+                </div>
+
+                <!-- Feature contribution Chart -->
+                <div class="chart-container" id="contributionChart"></div>
+
+                <!-- Static Importance Chart (Coefficients) -->
+                <div class="chart-container" id="importanceChart"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Modelo Mock (Coeficientes aproximados para California Housing) ---
+        // Feature order: MedInc, HouseAge, AveRooms, AveBedrms, Population, AveOccup, Latitude, Longitude
+        // Intercept: -36.94
+        const model = {
+            intercept: -36.94,
+            coeffs: {
+                'MedInc': 0.436,
+                'HouseAge': 0.009,
+                'AveRooms': -0.107,
+                'AveBedrms': 0.645,
+                'Population': -0.000004,
+                'AveOccup': -0.003,
+                'Latitude': -0.421,
+                'Longitude': -0.434
+            }
+        };
+
+        const features = Object.keys(model.coeffs);
+
+        // --- DOM Elements ---
+        const inputs = {};
+        const labels = {};
+        features.forEach(f => {
+            inputs[f] = document.getElementById(`in_${f}`);
+            labels[f] = document.getElementById(`val_${f}`);
+        });
+
+        const priceDisplay = document.getElementById('predPrice');
+
+        // --- Logic ---
+
+        function update() {
+            let prediction = model.intercept;
+            let contributions = [];
+            let currentValues = [];
+
+            features.forEach(f => {
+                let val = parseFloat(inputs[f].value);
+                currentValues.push(val);
+                labels[f].innerText = val;
+
+                let contrib = val * model.coeffs[f];
+                prediction += contrib;
+                contributions.push(contrib);
+            });
+
+            // Formatter Price
+            // The target is usually 1.0 = $100k
+            // Let's protect against negative visual due to extreme inputs in linear model
+            let displayPrice = Math.max(0, prediction).toFixed(3);
+            priceDisplay.innerText = `$${displayPrice} ($${(prediction * 100).toFixed(1)}k)`;
+
+
+            // --- Chart 1: Contribution Breakdown (Waterfall-ish logic) ---
+            // Shows how much each feature adds to the base intercept to reach final price.
+
+            let traceContrib = {
+                x: features,
+                y: contributions,
+                type: 'bar',
+                name: 'Contribución',
+                marker: {
+                    color: contributions.map(v => v >= 0 ? '#27ae60' : '#c0392b')
+                }
+            };
+
+            let layoutContrib = {
+                title: 'Contribución de cada Variable al Precio',
+                yaxis: { title: 'Impacto en Precio' },
+                margin: { t: 30, b: 40, l: 40, r: 20 }
+            };
+
+            Plotly.react('contributionChart', [traceContrib], layoutContrib);
+        }
+
+        // --- Chart 2: Feature Importance (Static Coefficients Magnitude) ---
+        function renderImportance() {
+            let traceImp = {
+                x: features,
+                y: features.map(f => model.coeffs[f]),
+                type: 'bar',
+                marker: { color: '#3498db' }
+            };
+
+            let layoutImp = {
+                title: 'Coeficientes del Modelo (Importancia Global)',
+                yaxis: { title: 'Peso (Coeficiente)' },
+                margin: { t: 30, b: 40, l: 40, r: 20 }
+            };
+
+            Plotly.newPlot('importanceChart', [traceImp], layoutImp);
+        }
+
+        // --- Init ---
+        // Add listeners
+        features.forEach(f => {
+            inputs[f].addEventListener('input', update);
+        });
+
+        renderImportance();
+        update();
+
+    </script>
+</body>
+
+</html>
