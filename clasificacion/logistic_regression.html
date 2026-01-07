@@ -132,7 +132,7 @@
             border-radius: 8px;
             text-align: center;
             font-weight: bold;
-            transition: all 0.3s;
+            /* transition: all 0.3s; Removed for instant update */
         }
 
         .result-default {
@@ -159,6 +159,19 @@
 
         .btn-predict:hover {
             filter: brightness(1.1);
+        }
+
+        .secondary-plots {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .secondary-plots {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -189,13 +202,13 @@
             </div>
 
             <div class="control-group">
-                <label>Peso Balance (β₁) <span id="val_b1" class="value-display">0.005</span></label>
-                <input type="range" id="b1" min="0" max="0.02" step="0.0001" value="0.005">
+                <label>Peso Balance (β₁) <span id="val_b1" class="value-display">0.0077</span></label>
+                <input type="range" id="b1" min="0" max="0.02" step="0.0001" value="0.0077">
             </div>
 
             <div class="control-group">
                 <label>Peso Ingreso (β₂) <span id="val_b2" class="value-display">0.000</span></label>
-                <input type="range" id="b2" min="-0.001" max="0.001" step="0.00005" value="0.0001">
+                <input type="range" id="b2" min="-0.001" max="0.001" step="0.00005" value="0">
             </div>
 
             <div class="inference-section">
@@ -210,6 +223,10 @@
         <!-- Main Content -->
         <main class="main-content">
             <div id="plotDiv"></div>
+            <div class="secondary-plots">
+                <div id="sigmoidBalanceDiv"></div>
+                <div id="sigmoidIncomeDiv"></div>
+            </div>
         </main>
     </div>
 
@@ -253,8 +270,8 @@
 
         // Initial Parameters (Custom starting guess)
         let b0 = -10.0;
-        let b1 = 0.005;
-        let b2 = 0.0001;
+        let b1 = 0.0077;
+        let b2 = 0.0;
 
         // --- 2. Plotting Setup ---
         function getDecisionBoundaryTrace() {
@@ -307,6 +324,9 @@
             };
 
             Plotly.newPlot('plotDiv', [dataTrace, boundaryTrace], layout);
+
+            // Initial plot of secondary graphs
+            updateSigmoidPlots();
         }
 
         // --- 3. Interactivity ---
@@ -319,26 +339,29 @@
             document.getElementById('val_b1').innerText = b1.toFixed(5);
             document.getElementById('val_b2').innerText = b2.toFixed(5);
 
-            // Animate only the boundary line for performance
-            Plotly.animate('plotDiv', {
-                data: [{}, getDecisionBoundaryTrace()],
-                traces: [0, 1],
-                layout: {}
-            }, {
-                transition: { duration: 100, easing: 'cubic-in-out' },
-                frame: { duration: 100 }
-            });
+            // Update the boundary line instantly
+            const boundaryTrace = getDecisionBoundaryTrace();
+            Plotly.restyle('plotDiv', {
+                y: [boundaryTrace.y]
+            }, [1]);
 
-            // Instant calculate if inference is visible?
+            // Update Inference if active
             if (document.getElementById('inference_result').style.display !== 'none') {
                 predict();
             }
+
+            // Update secondary plots
+            updateSigmoidPlots();
         }
 
         // Listeners
         document.getElementById('b0').addEventListener('input', updateParams);
         document.getElementById('b1').addEventListener('input', updateParams);
         document.getElementById('b2').addEventListener('input', updateParams);
+
+        // Listeners for inference inputs to update the cross-sections
+        document.getElementById('inf_balance').addEventListener('input', updateSigmoidPlots);
+        document.getElementById('inf_income').addEventListener('input', updateSigmoidPlots);
 
         // --- 4. Models & Inference ---
         function sigmoid(z) {
@@ -401,7 +424,126 @@
                 hovermode: 'closest'
             };
 
-            Plotly.newPlot('plotDiv', [dataTrace, boundaryTrace, inferenceTrace], layout);
+            Plotly.newPlot('plotDiv', [dataTrace, boundaryTrace, inferenceTrace], layout).then(updateSigmoidPlots);
+        }
+
+        // --- 5. Secondary Sigmoid Plots ---
+        function updateSigmoidPlots() {
+            const infBal = parseFloat(document.getElementById('inf_balance').value) || 0;
+            const infInc = parseFloat(document.getElementById('inf_income').value) || 0;
+
+            // --- Plot 1: Prob vs Balance (Fix Income) ---
+            const rangeBal = [];
+            const probsBal = [];
+            for (let x = 0; x <= 2800; x += 50) {
+                rangeBal.push(x);
+                let z = b0 + (b1 * x) + (b2 * infInc);
+                probsBal.push(sigmoid(z));
+            }
+
+            // Current point on Balance Curve
+            let zCurBal = b0 + (b1 * infBal) + (b2 * infInc);
+            let probCurBal = sigmoid(zCurBal);
+
+            const traceBalParams = {
+                x: rangeBal,
+                y: probsBal,
+                mode: 'lines',
+                line: {
+                    color: '#3498db',
+                    width: 2
+                },
+                name: 'P vs Balance'
+            };
+            const traceBalPoint = {
+                x: [infBal],
+                y: [probCurBal],
+                mode: 'markers',
+                marker: {
+                    color: 'red',
+                    size: 10
+                },
+                name: 'Actual'
+            };
+
+            const layoutBal = {
+                title: `Probabilidad vs Balance<br><span style='font-size:0.8em'>Ingreso fijo: $${infInc}</span>`,
+                xaxis: {
+                    title: 'Balance ($)',
+                    range: [0, 2800]
+                },
+                yaxis: {
+                    title: 'Probabilidad',
+                    range: [-0.05, 1.05]
+                },
+                margin: {
+                    t: 60,
+                    b: 40,
+                    l: 40,
+                    r: 20
+                },
+                showlegend: false,
+                height: 300
+            };
+
+            Plotly.react('sigmoidBalanceDiv', [traceBalParams, traceBalPoint], layoutBal);
+
+
+            // --- Plot 2: Prob vs Income (Fix Balance) ---
+            const rangeInc = [];
+            const probsInc = [];
+            for (let y = 0; y <= 80000; y += 2000) {
+                rangeInc.push(y);
+                let z = b0 + (b1 * infBal) + (b2 * y);
+                probsInc.push(sigmoid(z));
+            }
+
+            // Current point on Income Curve
+            let zCurInc = b0 + (b1 * infBal) + (b2 * infInc);
+            let probCurInc = sigmoid(zCurInc);
+
+            const traceIncParams = {
+                x: rangeInc,
+                y: probsInc,
+                mode: 'lines',
+                line: {
+                    color: '#e67e22',
+                    width: 2
+                },
+                name: 'P vs Ingreso'
+            };
+            const traceIncPoint = {
+                x: [infInc],
+                y: [probCurInc],
+                mode: 'markers',
+                marker: {
+                    color: 'red',
+                    size: 10
+                },
+                name: 'Actual'
+            };
+
+            const layoutInc = {
+                title: `Probabilidad vs Ingreso<br><span style='font-size:0.8em'>Balance fijo: $${infBal}</span>`,
+                xaxis: {
+                    title: 'Ingreso ($)',
+                    range: [0, 80000]
+                },
+                yaxis: {
+                    title: 'Probabilidad',
+                    range: [-0.05, 1.05]
+                },
+                margin: {
+                    t: 60,
+                    b: 40,
+                    l: 40,
+                    r: 20
+                },
+                showlegend: false,
+                height: 300
+            };
+
+            Plotly.react('sigmoidIncomeDiv', [traceIncParams, traceIncPoint], layoutInc);
         }
 
         // Initialize
