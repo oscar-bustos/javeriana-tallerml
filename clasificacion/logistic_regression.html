@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Regresión Logística - Default Dataset</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        /* --- Reuse Styles from Index --- */
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #e67e22;
+            /* Orange for 'Tabular' theme */
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-color: #333;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            color: white;
+            padding: 20px 20px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        .back-btn {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 15px;
+            border-radius: 20px;
+            transition: background 0.3s;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 0 20px;
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+        }
+
+        /* --- Controls Sidebar --- */
+        .sidebar {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            height: fit-content;
+        }
+
+        .control-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            margin-bottom: 5px;
+        }
+
+        .value-display {
+            font-family: monospace;
+            color: var(--accent-color);
+            float: right;
+        }
+
+        .equation-box {
+            background: #f1f2f6;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--accent-color);
+        }
+
+        /* --- Main Visualization --- */
+        .main-content {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+        }
+
+        #plotDiv {
+            width: 100%;
+            height: 600px;
+        }
+
+        /* --- Inference Section --- */
+        .inference-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        .result-box {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .result-default {
+            background: #fee;
+            color: #c0392b;
+        }
+
+        .result-safe {
+            background: #e8f8f5;
+            color: #27ae60;
+        }
+
+        .btn-predict {
+            width: 100%;
+            padding: 10px;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .btn-predict:hover {
+            filter: brightness(1.1);
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <a href="../index.html" class="back-btn">← Volver</a>
+        <h1>Regresión Logística Interactiva</h1>
+        <p>Predecir el 'Default' basado en Balance e Ingreso</p>
+    </header>
+
+    <div class="container">
+        <!-- Sidebar Controls -->
+        <aside class="sidebar">
+            <h3>Parámetros del Modelo</h3>
+            <p style="font-size: 0.8em; color: #7f8c8d;">Ajusta los coeficientes para encontrar la mejor frontera de
+                decisión.</p>
+
+            <div class="equation-box">
+                Z = β₀ + β₁*Balance + β₂*Ingreso<br>
+                P(Default) = 1 / (1 + e⁻ᶻ)
+            </div>
+
+            <div class="control-group">
+                <label>Interpretación (β₀) <span id="val_b0" class="value-display">-10.00</span></label>
+                <input type="range" id="b0" min="-20" max="0" step="0.1" value="-10">
+            </div>
+
+            <div class="control-group">
+                <label>Peso Balance (β₁) <span id="val_b1" class="value-display">0.005</span></label>
+                <input type="range" id="b1" min="0" max="0.02" step="0.0001" value="0.005">
+            </div>
+
+            <div class="control-group">
+                <label>Peso Ingreso (β₂) <span id="val_b2" class="value-display">0.000</span></label>
+                <input type="range" id="b2" min="-0.001" max="0.001" step="0.00005" value="0.0001">
+            </div>
+
+            <div class="inference-section">
+                <h3>Inferencia</h3>
+                <label>Balance ($): <input type="number" id="inf_balance" value="1500" style="width: 80px;"></label>
+                <label>Ingreso ($): <input type="number" id="inf_income" value="30000" style="width: 80px;"></label>
+                <button class="btn-predict" onclick="predict()">Calcular Probabilidad</button>
+                <div id="inference_result" class="result-box" style="display:none;"></div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div id="plotDiv"></div>
+        </main>
+    </div>
+
+    <script>
+        // --- 1. Data Generation (Simulating ISLR Default Dataset) ---
+        const N = 400; // Number of points
+        const balance = [];
+        const income = [];
+        const defaultStatus = []; // 0: No, 1: Yes
+        const colors = [];
+
+        // Seeded random for consistency
+        let seed = 1234;
+        function random() {
+            var x = Math.sin(seed++) * 10000;
+            return x - Math.floor(x);
+        }
+
+        function randomNormal(mean, std) {
+            let u = 0, v = 0;
+            while (u === 0) u = random();
+            while (v === 0) v = random();
+            return mean + std * Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+        }
+
+        // Generate 'No' class (Low Balance)
+        for (let i = 0; i < 300; i++) {
+            balance.push(Math.max(0, randomNormal(800, 400)));
+            income.push(Math.max(0, randomNormal(35000, 15000)));
+            defaultStatus.push(0);
+            colors.push('#3498db'); // Blue
+        }
+
+        // Generate 'Yes' class (High Balance) - fewer points
+        for (let i = 0; i < 100; i++) {
+            balance.push(Math.max(0, randomNormal(1800, 350)));
+            income.push(Math.max(0, randomNormal(36000, 15000)));
+            defaultStatus.push(1);
+            colors.push('#e67e22'); // Orange
+        }
+
+        // Initial Parameters (Custom starting guess)
+        let b0 = -10.0;
+        let b1 = 0.005;
+        let b2 = 0.0001;
+
+        // --- 2. Plotting Setup ---
+        function getDecisionBoundaryTrace() {
+            // Z = b0 + b1*x + b2*y = 0 => y = -(b0 + b1*x) / b2
+            let xRange = [0, 2600];
+            let yRange = [];
+
+            // Avoid division by zero
+            let effectiveB2 = Math.abs(b2) < 1e-6 ? 1e-6 : b2;
+
+            yRange = xRange.map(x => -(b0 + b1 * x) / effectiveB2);
+
+            return {
+                x: xRange,
+                y: yRange,
+                mode: 'lines',
+                name: 'Frontera (P=0.5)',
+                line: {
+                    color: '#2c3e50',
+                    width: 3,
+                    dash: 'dash'
+                }
+            };
+        }
+
+        function plot() {
+            const dataTrace = {
+                x: balance,
+                y: income,
+                mode: 'markers',
+                type: 'scatter',
+                text: defaultStatus.map(d => d === 1 ? 'Default: Yes' : 'Default: No'),
+                marker: {
+                    color: colors,
+                    opacity: 0.6,
+                    size: 8
+                },
+                name: 'Clientes'
+            };
+
+            const boundaryTrace = getDecisionBoundaryTrace();
+
+            const layout = {
+                title: 'Balance vs Ingreso (Azul: No Default, Naranja: Default)',
+                xaxis: { title: 'Balance ($)', range: [0, 2800] },
+                yaxis: { title: 'Ingreso Anual ($)', range: [0, 80000] },
+                hovermode: 'closest',
+                showlegend: true,
+                legend: { x: 1, xanchor: 'right', y: 1 }
+            };
+
+            Plotly.newPlot('plotDiv', [dataTrace, boundaryTrace], layout);
+        }
+
+        // --- 3. Interactivity ---
+        function updateParams() {
+            b0 = parseFloat(document.getElementById('b0').value);
+            b1 = parseFloat(document.getElementById('b1').value);
+            b2 = parseFloat(document.getElementById('b2').value);
+
+            document.getElementById('val_b0').innerText = b0.toFixed(2);
+            document.getElementById('val_b1').innerText = b1.toFixed(5);
+            document.getElementById('val_b2').innerText = b2.toFixed(5);
+
+            // Animate only the boundary line for performance
+            Plotly.animate('plotDiv', {
+                data: [{}, getDecisionBoundaryTrace()],
+                traces: [0, 1],
+                layout: {}
+            }, {
+                transition: { duration: 100, easing: 'cubic-in-out' },
+                frame: { duration: 100 }
+            });
+
+            // Instant calculate if inference is visible?
+            if (document.getElementById('inference_result').style.display !== 'none') {
+                predict();
+            }
+        }
+
+        // Listeners
+        document.getElementById('b0').addEventListener('input', updateParams);
+        document.getElementById('b1').addEventListener('input', updateParams);
+        document.getElementById('b2').addEventListener('input', updateParams);
+
+        // --- 4. Models & Inference ---
+        function sigmoid(z) {
+            return 1 / (1 + Math.exp(-z));
+        }
+
+        function predict() {
+            const infBal = parseFloat(document.getElementById('inf_balance').value);
+            const infInc = parseFloat(document.getElementById('inf_income').value);
+
+            const z = b0 + (b1 * infBal) + (b2 * infInc);
+            const prob = sigmoid(z);
+
+            const resultBox = document.getElementById('inference_result');
+            resultBox.style.display = 'block';
+
+            const percentage = (prob * 100).toFixed(2);
+
+            if (prob > 0.5) {
+                resultBox.className = 'result-box result-default';
+                resultBox.innerHTML = `Probabilidad de Default: ${percentage}%<br>Predicción: SÍ`;
+            } else {
+                resultBox.className = 'result-box result-safe';
+                resultBox.innerHTML = `Probabilidad de Default: ${percentage}%<br>Predicción: NO`;
+            }
+
+            // Optional: Add a point to the graph to show where the inference is
+            const inferenceTrace = {
+                x: [infBal],
+                y: [infInc],
+                mode: 'markers',
+                marker: {
+                    color: 'red',
+                    size: 15,
+                    symbol: 'x'
+                },
+                name: 'Consulta'
+            };
+
+            // We need to re-plot to include the new point cleanly or use extendTraces. 
+            // Re-plotting is safer for this simple app.
+            const dataTrace = {
+                x: balance,
+                y: income,
+                mode: 'markers',
+                type: 'scatter',
+                text: defaultStatus.map(d => d === 1 ? 'Default: Yes' : 'Default: No'),
+                marker: {
+                    color: colors,
+                    opacity: 0.6,
+                    size: 8
+                },
+                name: 'Clientes'
+            };
+            const boundaryTrace = getDecisionBoundaryTrace();
+            const layout = {
+                title: 'Balance vs Ingreso',
+                xaxis: { title: 'Balance ($)', range: [0, 2800] },
+                yaxis: { title: 'Ingreso Anual ($)', range: [0, 80000] },
+                hovermode: 'closest'
+            };
+
+            Plotly.newPlot('plotDiv', [dataTrace, boundaryTrace, inferenceTrace], layout);
+        }
+
+        // Initialize
+        plot();
+
+    </script>
+</body>
+
+</html>

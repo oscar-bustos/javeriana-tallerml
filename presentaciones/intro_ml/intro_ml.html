@@ -56,6 +56,15 @@
             display: block;
             margin-top: 10px;
         }
+
+        .title-overlay {
+            background-color: rgba(255, 255, 255, 0.85);
+            /* Semi-transparent white background */
+            padding: 2rem;
+            border-radius: 15px;
+            display: inline-block;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
     </style>
 </head>
 
@@ -64,11 +73,13 @@
         <div class="slides">
             <!-- Title Slide -->
             <section class="text-center" data-background-image="assets/background.png">
-                <h2>Sesión introductoria</h2>
-                <h3>Técnicas de aprendizaje de máquina</h3>
-                <p>
-                    <a href="mailto:oscar.bustos@javeriana.edu.co">Oscar Bustos</a>
-                </p>
+                <div class="title-overlay">
+                    <h2>Sesión introductoria</h2>
+                    <h3>Técnicas de aprendizaje de máquina</h3>
+                    <p>
+                        <a href="mailto:oscar.bustos@javeriana.edu.co">Oscar Bustos</a>
+                    </p>
+                </div>
             </section>
 
             <!-- Section: Presentación -->

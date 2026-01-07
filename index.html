@@ -127,7 +127,7 @@
         }
 
         .card-text {
-            color: #7f8c8d;
+            color: #2d3436;
             font-size: 0.95em;
             line-height: 1.6;
         }
@@ -242,10 +242,40 @@
         }
 
         .footer {
-            margin-top: 50px;
+            margin-top: 60px;
             text-align: center;
             color: #7f8c8d;
-            padding: 20px;
+            padding: 30px 20px;
+            border-top: 1px solid #eee;
+            background: #fff;
+        }
+
+        /* Logo Styles */
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .javeriana-logo {
+            height: 80px;
+            width: auto;
+            background-color: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-text {
+            text-align: left;
+        }
+
+        @media (max-width: 768px) {
+            .header-text {
+                text-align: center;
+            }
         }
     </style>
 </head>
@@ -254,9 +284,14 @@
 
     <div class="container">
         <header>
-            <h1>Técnicas de Aprendizaje de Máquina</h1>
-            <p class="subtitle">Pontificia Universidad Javeriana - Curso 33703</p>
-            <p style="text-align:center; max-width:800px; margin: 0 auto; color:#666;">
+            <div class="header-content">
+                <img src="assets/logo_RGB.png" alt="Logo PUJ" class="javeriana-logo">
+                <div class="header-text">
+                    <h1>Técnicas de Aprendizaje de Máquina</h1>
+                    <p class="subtitle">Pontificia Universidad Javeriana - Curso 33703</p>
+                </div>
+            </div>
+            <p style="text-align:center; max-width:800px; margin: 20px auto 0; color:rgba(255,255,255,0.9);">
                 Guía interactiva y herramientas para el curso, organizado por semanas y tipos de datos.
             </p>
         </header>
@@ -319,6 +354,26 @@
                 </div>
                 <div class="card-footer">
                     <a href="regresion_lineal/feature_importance.html" class="btn">Abrir Herramienta</a>
+                </div>
+            </div>
+
+            <!-- Logistic Regression Card -->
+            <div class="card">
+                <div class="card-icon-header icon-logistic">
+                    <svg viewBox="0 0 24 24">
+                        <path
+                            d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14l-5-5 1.41-1.41L10 13.17l7.59-7.59L19 7l-9 9z"
+                            opacity="0.3" />
+                        <path d="M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z" />
+                    </svg>
+                </div>
+                <div class="card-body">
+                    <span class="badge badge-tabular">Clasificación</span>
+                    <h3 class="card-title">Regresión Logística</h3>
+                    <p class="card-text">Clasificación binaria en dataset Default. Ajuste de frontera e inferencia.</p>
+                </div>
+                <div class="card-footer">
+                    <a href="clasificacion/logistic_regression.html" class="btn">Abrir Herramienta</a>
                 </div>
             </div>
 
@@ -435,8 +490,10 @@
         </div>
 
         <div class="footer">
-            <p>Pontificia Universidad Javeriana - Facultad de Ingeniería</p>
-            <p>Creado en Taller de Machine Learning</p>
+            <p style="font-weight: 600; color: var(--primary-color);">Pontificia Universidad Javeriana - Facultad de
+                Ingeniería</p>
+            <p>Generado por la IA Gemini 3 pro y Oscar Bustos</p>
+            <p><small style="color: #95a5a6;">Licenciado bajo Apache License 2.0</small></p>
         </div>
     </div>
 
