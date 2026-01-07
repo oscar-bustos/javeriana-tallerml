@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>Sesión Introductoria - Técnicas de Aprendizaje de Máquina</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.4/reset.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.4/reveal.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.4/theme/white.min.css">
+
+    <!-- Theme used for syntax highlighted code -->
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.4/plugin/highlight/monokai.min.css">
+
+    <style>
+        .reveal .slides section {
+            text-align: left;
+        }
+
+        .reveal h1,
+        .reveal h2,
+        .reveal h3 {
+            text-transform: none;
+        }
+
+        .two-col {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .two-col>div {
+            flex: 1;
+            padding: 10px;
+        }
+
+        .text-center {
+            text-align: center !important;
+        }
+
+        .small-text {
+            font-size: 0.6em;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .source-link {
+            font-size: 0.5em;
+            color: gray;
+            display: block;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="reveal">
+        <div class="slides">
+            <!-- Title Slide -->
+            <section class="text-center" data-background-image="assets/background.png">
+                <h2>Sesión introductoria</h2>
+                <h3>Técnicas de aprendizaje de máquina</h3>
+                <p>
+                    <a href="mailto:oscar.bustos@javeriana.edu.co">Oscar Bustos</a>
+                </p>
+            </section>
+
+            <!-- Section: Presentación -->
+            <section>
+                <section>
+                    <h2>Presentación</h2>
+                </section>
+
+                <section class="text-center">
+                    <h3>¡Conozcámonos!</h3>
+                    <p class="fragment">¡Hola a todos!</p>
+                    <p class="fragment">¿Podrían compartir un poco sobre ustedes?</p>
+                    <p class="fragment">Digan su <strong>Nombre</strong>, su <strong>profesión ideal</strong> o en dónde
+                        les gustaría <strong>emprender</strong>, y qué les llama la <strong>atención</strong> sobre esta
+                        clase.</p>
+                </section>
+
+                <section>
+                    <h3>¡Conozcámonos!</h3>
+                    <div class="two-col">
+                        <div>
+                            <ul>
+                                <li>Soy Oscar Bustos</li>
+                                <li>Ingeniero Mecatrónico, PhD. (c) en Ingeniería - PUJ</li>
+                                <li>Docente Javeriano, Tech Manager en Mercadolibre</li>
+                                <li>Me gusta todo lo relacionado con IA / Advanced Analytics</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <img src="assets/FotoReciente.png" alt="Oscar Bustos">
+                        </div>
+                    </div>
+                </section>
+            </section>
+
+            <!-- Section: Evaluación y Logística -->
+            <section>
+                <section>
+                    <h2>Evaluación y Logística</h2>
+                </section>
+
+                <section>
+                    <h3>Estructura del Curso</h3>
+                    <ul>
+                        <li><strong>Exposición Asíncrona</strong>
+                            <ul>
+                                <li>Exposición 10%</li>
+                            </ul>
+                        </li>
+                        <li><strong>Talleres</strong>
+                            <ul>
+                                <li>Talleres 40%</li>
+                                <li>Un taller por clase</li>
+                            </ul>
+                        </li>
+                        <li><strong>Proyecto Final</strong>
+                            <ul>
+                                <li>Entrega 1: 25%</li>
+                                <li>Entrega 2: 25%</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h3>Reglas</h3>
+                    <ul>
+                        <li>Todas las clases tienen un <strong>taller práctico</strong> asociado, para entregar los
+                            domingos a las <strong>11:59pm</strong></li>
+                        <li>Los talleres se resuelven y envían en <strong>parejas</strong>.</li>
+                        <li>El proyecto en grupo debe ser integrado por <strong>4 personas</strong>, 2 parejas
+                            idealmente.</li>
+                        <li>Todas las entregas se hacen a través del <strong>Campus Virtual</strong></li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h3>Reglas - Continuación</h3>
+                    <ul>
+                        <li>Todas las clases son <strong>presenciales</strong>. No obstante, se pueden transmitir
+                            virtualmente a petición de algún estudiante.</li>
+                        <li>Las clases empiezan a las <strong>7:10am</strong> y terminan a las <strong>9:30am</strong>
+                        </li>
+                        <li>Esta es una clase <strong>amigable con la IA</strong>. Se promueve el uso de la IA para
+                            generación de código Python para que el estudiante se enfoque en el análisis de los datos y
+                            de los modelos.</li>
+                        <li>Para garantizar un ambiente agradable y libre de distracciones para todos, les agradecemos
+                            no fumar ni <strong>vapear</strong> durante la clase.</li>
+                        <li>Con el fin de mantener la limpieza, <strong>no consumir alimentos</strong> en el salón.</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h3>Lecturas</h3>
+                    <ul>
+                        <li>Todos los libros se encuentran en la plataforma de Springer Nature y O'Reilly</li>
+                        <li>Se puede acceder a través de los recursos virtuales de la biblioteca: <a
+                                href="https://javeriana.libguides.com/az.php?a=o" target="_blank">Enlace Biblioteca</a>
+                        </li>
+                    </ul>
+                </section>
+
+                <section class="text-center">
+                    <h3>Libros de la Clase</h3>
+                    <div style="display: flex; justify-content: space-around;">
+                        <img src="assets/IntroStatisticalLearning.png" style="width: 30%;"
+                            alt="Intro Statistical Learning">
+                        <img src="assets/DataScienceBusiness.jpg" style="width: 30%;" alt="Data Science for Business">
+                        <img src="assets/keras.jpeg" style="width: 30%;" alt="Keras">
+                    </div>
+                </section>
+
+                <section class="text-center">
+                    <h3>Cronograma</h3>
+                    <img src="assets/Cronograma.png" alt="Cronograma">
+                </section>
+            </section>
+
+            <!-- Section: Motivación -->
+            <section>
+                <section>
+                    <h2>Motivación de la Clase</h2>
+                </section>
+
+                <section class="text-center">
+                    <h3>Roles Orientados a Datos</h3>
+                    <img src="assets/dataAnalyst.jpg" alt="Data Analyst">
+                    <span class="source-link">Tomado de: datacamp.com</span>
+                </section>
+
+                <section class="text-center">
+                    <h3>Roles Orientados a Datos</h3>
+                    <img src="assets/dataScientist.jpg" alt="Data Scientist">
+                    <span class="source-link">Tomado de: datacamp.com</span>
+                </section>
+
+                <section class="text-center">
+                    <h3>Roles Orientados a Datos</h3>
+                    <img src="assets/dataArchitect.jpg" alt="Data Architect">
+                    <span class="source-link">Tomado de: datacamp.com</span>
+                </section>
+
+                <section class="text-center">
+                    <h3>Roles Orientados a Datos</h3>
+                    <img src="assets/dataEngineer.jpg" alt="Data Engineer">
+                    <span class="source-link">Tomado de: datacamp.com</span>
+                </section>
+
+                <section class="text-center">
+                    <h3>Remuneración</h3>
+                    <img src="assets/EstudioRemuneracion.jpg" style="width: 80%;" alt="Estudio Remuneración">
+                    <span class="source-link">Tomado de: michaelpage.com.co</span>
+                </section>
+
+                <section>
+                    <h3>Objetivos de Formación</h3>
+                    <ul>
+                        <li><strong>Herramientas Prácticas:</strong> Brindar herramientas de Machine Learning para el
+                            desarrollo de soluciones a problemas reales.</li>
+                        <li><strong>Desarrollo de Habilidades:</strong> Aplicar conceptos fundamentales para fortalecer
+                            la capacidad de abstracción y la resolución de problemas.</li>
+                        <li><strong>Conciencia Crítica:</strong> Generar reflexión sobre el impacto social y las
+                            implicaciones éticas del Machine Learning.</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h3>Resultados de Aprendizaje</h3>
+                    <p>Al finalizar el curso, el estudiante podrá:</p>
+                    <ul>
+                        <li><strong>Resolver Problemas:</strong> Aplicar principios de Machine Learning para solucionar
+                            problemas.</li>
+                        <li><strong>Validar Soluciones:</strong> Diseñar experimentos para evaluar la efectividad.</li>
+                        <li><strong>Actuar con Ética:</strong> Discutir y aplicar la responsabilidad ética y social.
+                        </li>
+                    </ul>
+                </section>
+
+                <section class="text-center">
+                    <h3>Libros - Ética en IA</h3>
+                    <div style="display: flex; justify-content: space-around;">
+                        <img src="assets/SuperIntelligence.jpg" style="width: 30%;" alt="Super Intelligence">
+                        <img src="assets/WeaponsMath.jpg" style="width: 30%;" alt="Weapons of Math Destruction">
+                        <img src="assets/Nexus.jpg" style="width: 30%;" alt="Nexus">
+                    </div>
+                </section>
+            </section>
+
+            <!-- Section: Aprendizaje de Máquina -->
+            <section>
+                <section>
+                    <h2>Aprendizaje de Máquina (ML)</h2>
+                </section>
+
+                <section class="text-center">
+                    <h3>Aprendizaje de Máquina</h3>
+                    <div class="two-col">
+                        <img src="assets/Programming1.png" alt="Programming vs ML">
+                        <img src="assets/Programming2.png" alt="Programming vs ML">
+                    </div>
+                    <span class="source-link">medium.com</span>
+                </section>
+
+                <section class="text-center">
+                    <h3>Aprendizaje de Máquina</h3>
+                    <img src="assets/Programming3.png" style="width: 80%;" alt="ML Diagram">
+                    <span class="source-link">medium.com</span>
+                </section>
+
+                <section class="text-center">
+                    <h3>Aprendizaje de Máquina</h3>
+                    <img src="assets/Problems.png" style="width: 80%;" alt="Types of Problems">
+                    <span class="source-link">mckinsey.com</span>
+                </section>
+            </section>
+
+            <!-- Section: Herramientas -->
+            <section>
+                <section>
+                    <h2>Herramientas</h2>
+                </section>
+
+                <section class="text-center">
+                    <h3>Popularidad de Lenguajes</h3>
+                    <img src="assets/Python.png" alt="Python Popularity">
+                    <span class="source-link">tiobe.com</span>
+                </section>
+
+                <section class="text-center">
+                    <h3>Sklearn y Problemas de ML</h3>
+                    <img src="assets/selectingAlgo.png" style="width: 90%;" alt="Sklearn Cheat Sheet">
+                </section>
+
+                <section>
+                    <h3>Herramientas Sugeridas</h3>
+                    <table style="font-size: 0.8em;">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Descripción</th>
+                                <th>Enlace</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Google Colab</td>
+                                <td>Ambiente de ejecución en la nube (Python)</td>
+                                <td><a href="https://colab.research.google.com">Colab</a></td>
+                            </tr>
+                            <tr>
+                                <td>Google Gemini</td>
+                                <td>Modelo LLM para aprendizaje</td>
+                                <td><a href="https://gemini.google.com/">Gemini</a></td>
+                            </tr>
+                            <tr>
+                                <td>N8N</td>
+                                <td>Plataforma de workflows</td>
+                                <td><a href="https://n8n.io/">N8N</a></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </section>
+
+                <section>
+                    <h3>Google Colab</h3>
+                    <div class="two-col">
+                        <div style="font-size: 0.8em;">
+                            Ambiente de desarrollo en Python o R para el análisis de datos. Permite la ejecución en la
+                            nube.
+                        </div>
+                        <div>
+                            <img src="assets/colabIDE.jpg" alt="Colab IDE">
+                        </div>
+                    </div>
+                </section>
+
+                <section>
+                    <h3>Google Colab con Gemini</h3>
+                    <div class="two-col">
+                        <div style="font-size: 0.8em;">
+                            Cuenta con el chat de Gemini embebido para asistir en la escritura de código.
+                        </div>
+                        <div>
+                            <img src="assets/colabIDEGemini.jpg" alt="Gemini in Colab">
+                        </div>
+                    </div>
+                </section>
+
+                <section>
+                    <h3>Análisis Exploratorio</h3>
+                    <div class="two-col">
+                        <div style="font-size: 0.8em;">
+                            <strong>Prompt:</strong> Haz un analisis exploratorio de datos del archivo de github
+                            datasciencedojo titanic.csv usando la librería ydata-profiling.
+                        </div>
+                        <div>
+                            <img src="assets/ColabAgentico.png" alt="Colab Agent">
+                        </div>
+                    </div>
+                </section>
+
+                <section>
+                    <h3>Resultados ydata-profiling</h3>
+                    <div class="two-col">
+                        <div style="font-size: 0.8em;">
+                            Visualización automática de estadísticas y distribuciones.
+                        </div>
+                        <div>
+                            <img src="assets/colabYdata.jpg" alt="YData Profiling">
+                        </div>
+                    </div>
+                </section>
+            </section>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.4/reveal.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.4/plugin/notes/notes.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.4/plugin/markdown/markdown.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.4/plugin/highlight/highlight.min.js"></script>
+    <script>
+        Reveal.initialize({
+            hash: true,
+            plugins: [RevealMarkdown, RevealHighlight, RevealNotes]
+        });
+    </script>
+</body>
+
+</html>
