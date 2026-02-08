@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVM: Margen y Vectores de Soporte</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #e67e22;
+            --secondary-color: #2c3e50;
+            --accent-color: #e74c3c;
+            --bg-light: #f4f7f6;
+            --card-bg: #ffffff;
+            --shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-light);
+            padding: 20px;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: var(--secondary-color);
+        }
+
+        .container {
+            background-color: var(--card-bg);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: var(--shadow);
+            width: 95%;
+            max-width: 1400px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            margin: 0;
+            color: var(--secondary-color);
+            font-size: 2em;
+        }
+
+        p.subtitle {
+            color: #7f8c8d;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: var(--secondary-color);
+            color: white;
+            text-decoration: none;
+            border-radius: 30px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn:hover {
+            background-color: #34495e;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .controls-panel {
+            background-color: #fdf2e9;
+            padding: 20px;
+            border-radius: 10px;
+            height: fit-content;
+            border: 1px solid #fae5d3;
+        }
+
+        .equation-box {
+            background: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--primary-color);
+            color: #333;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+            background: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        .control-group input[type=range] {
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .val-display {
+            float: right;
+            color: var(--primary-color);
+            font-family: monospace;
+        }
+
+        .viz-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .margin-card {
+            background: linear-gradient(135deg, var(--primary-color), #d35400);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+
+        .margin-card h2 {
+            margin: 0;
+            font-size: 1.2em;
+            opacity: 0.9;
+            color: white;
+        }
+
+        .margin-card .value {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .margin-card .note {
+            font-size: 0.8em;
+            opacity: 0.8;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #eee;
+            height: 500px;
+        }
+
+        .error-msg {
+            background-color: #e74c3c;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            display: none;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <a href="../index.html" class="btn">← Volver al Menú</a>
+
+        <header>
+            <h1>Margen en SVM (Support Vector Machines)</h1>
+            <p class="subtitle">Ajusta el hiperplano para maximizar el margen que separa las clases.</p>
+        </header>
+
+        <div class="dashboard-grid">
+
+            <!-- Controls -->
+            <div class="controls-panel">
+                <h3>Parámetros del Hiperplano</h3>
+                <p style="font-size:0.9em; color:#666;">Controla la orientación y posición de la línea de decisión.</p>
+
+                <div class="equation-box">
+                    <strong>Frontera de Decisión:</strong><br><br>
+                    w₁x₁ + w₂x₂ + b = 0
+                    <hr style="border:0; border-top:1px solid #eee; margin:10px 0;">
+                    <strong>Margen Teórico:</strong> 2 / ||w||<br>
+                    <span id="eq_norm" style="font-size:0.85em; color:var(--secondary-color);">
+                        ||w|| = 1.41
+                    </span>
+                </div>
+
+                <div class="control-group">
+                    <label>Peso w₁ <span id="val_w1" class="val-display">1.0</span></label>
+                    <input type="range" id="in_w1" min="-3" max="3" step="0.1" value="1">
+                </div>
+
+                <div class="control-group">
+                    <label>Peso w₂ <span id="val_w2" class="val-display">1.0</span></label>
+                    <input type="range" id="in_w2" min="-3" max="3" step="0.1" value="1">
+                </div>
+
+                <div class="control-group">
+                    <label>Intercepto (b) <span id="val_b" class="val-display">0.0</span></label>
+                    <input type="range" id="in_b" min="-10" max="10" step="0.1" value="0">
+                </div>
+
+                <div
+                    style="margin-top:20px; font-size:0.85em; color:#555; background: #fff; padding:15px; border-radius:8px;">
+                    <strong>¿Qué es el margen?</strong><br>
+                    Es la distancia entre la frontera de decisión y los puntos más cercanos de cada clase (Vectores de
+                    Soporte).<br><br>
+                    El objetivo de SVM es encontrar w₁, w₂, y b que <em>maximicen</em> el margen = 2/||w||.
+                </div>
+            </div>
+
+            <!-- Visualization -->
+            <div class="viz-panel">
+
+                <div class="error-msg" id="msg_error">¡Error! Las clases no están separadas correctamente.</div>
+
+                <!-- Margin Display -->
+                <div class="margin-card" id="card_margin">
+                    <h2>Margen Observado</h2>
+                    <div class="value" id="disp_margin">0.00</div>
+                    <p class="note">Distancia total a los vectores de soporte (puntos más cercanos).</p>
+                </div>
+
+                <!-- Chart -->
+                <div class="chart-container" id="svmChart"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. Generación de Datos Linealmente Separables ---
+        const n_points = 25;
+        const class0_x = [], class0_y = [];
+        const class1_x = [], class1_y = [];
+
+        function generateData() {
+            let seed = 42;
+            function random() {
+                let x = Math.sin(seed++) * 10000;
+                return x - Math.floor(x);
+            }
+            function randn() {
+                let u = 0, v = 0;
+                while (u === 0) u = random();
+                while (v === 0) v = random();
+                return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+            }
+
+            for (let i = 0; i < n_points; i++) {
+                // Reduced variance (0.8) ensures separation with default w1=1, w2=1, b=0
+                class0_x.push(-2.5 + randn() * 0.8);
+                class0_y.push(-2.5 + randn() * 0.8);
+
+                class1_x.push(2.5 + randn() * 0.8);
+                class1_y.push(2.5 + randn() * 0.8);
+            }
+        }
+        generateData();
+
+        // --- 2. Elementos DOM ---
+        const sliderW1 = document.getElementById('in_w1');
+        const sliderW2 = document.getElementById('in_w2');
+        const sliderB = document.getElementById('in_b');
+        const valW1 = document.getElementById('val_w1');
+        const valW2 = document.getElementById('val_w2');
+        const valB = document.getElementById('val_b');
+        const eqNorm = document.getElementById('eq_norm');
+
+        const dispMargin = document.getElementById('disp_margin');
+        const msgError = document.getElementById('msg_error');
+        const cardMargin = document.getElementById('card_margin');
+
+        // --- 3. Lógica de Actualización ---
+        function update() {
+            // Leer valores
+            const w1 = parseFloat(sliderW1.value);
+            const w2 = parseFloat(sliderW2.value);
+            const b = parseFloat(sliderB.value);
+
+            valW1.innerText = w1.toFixed(1);
+            valW2.innerText = w2.toFixed(1);
+            valB.innerText = b.toFixed(1);
+
+            // Calcular norma de w
+            const normW = Math.sqrt(w1 * w1 + w2 * w2);
+            eqNorm.innerHTML = `||w|| = ${normW.toFixed(2)}`;
+
+            // Evitar división por cero
+            if (normW < 0.01) {
+                msgError.style.display = 'block';
+                msgError.innerText = '¡Error! ||w|| ≈ 0. Ajusta w₁ o w₂.';
+                cardMargin.style.background = '#e74c3c';
+                dispMargin.innerText = "∞";
+                return;
+            }
+
+            // Calcular distancia de cada punto a la línea
+            // Distancia con signo normalizada: d = (w1*x + w2*y + b) / ||w||
+
+            // Determinar orientación basándose en centroides
+            const centroid1_proj = (2.5 * w1 + 2.5 * w2 + b) / normW;
+            const centroid0_proj = (-2.5 * w1 - 2.5 * w2 + b) / normW;
+
+            let sign = 1;
+            if (centroid0_proj > centroid1_proj) {
+                sign = -1;
+            }
+
+            // Validar separación y encontrar márgenes
+            let min_dist_1 = Infinity;
+            let min_dist_0 = Infinity;
+            let misclassified = false;
+
+            // Revisar Clase 1
+            for (let i = 0; i < n_points; i++) {
+                let d = ((class1_x[i] * w1 + class1_y[i] * w2 + b) / normW) * sign;
+                if (d < 0) misclassified = true;
+                if (d < min_dist_1) min_dist_1 = d;
+            }
+
+            // Revisar Clase 0
+            for (let i = 0; i < n_points; i++) {
+                let d_raw = ((class0_x[i] * w1 + class0_y[i] * w2 + b) / normW) * sign;
+                if (d_raw > 0) misclassified = true;
+                let d_abs = -d_raw;
+                if (d_abs < min_dist_0) min_dist_0 = d_abs;
+            }
+
+            // Actualizar UI
+            if (misclassified) {
+                msgError.style.display = 'block';
+                msgError.innerText = '¡Error! Las clases no están separadas correctamente.';
+                cardMargin.style.background = '#e74c3c';
+                dispMargin.innerText = "Inválido";
+            } else {
+                msgError.style.display = 'none';
+                cardMargin.style.background = 'linear-gradient(135deg, var(--primary-color), #d35400)';
+
+                // Margen observado = suma de distancias a los vectores de soporte
+                let observedMargin = min_dist_1 + min_dist_0;
+                dispMargin.innerText = observedMargin.toFixed(3);
+            }
+
+            // --- Plotting ---
+            let trace0 = {
+                x: class0_x, y: class0_y,
+                mode: 'markers', name: 'Clase -',
+                marker: { size: 10, color: '#e74c3c', symbol: 'circle-open', line: { width: 2 } }
+            };
+            let trace1 = {
+                x: class1_x, y: class1_y,
+                mode: 'markers', name: 'Clase +',
+                marker: { size: 10, color: '#3498db', symbol: 'cross', line: { width: 2 } }
+            };
+
+            const range = 6;
+
+            function getLinePoints(offset_val) {
+                // offset_val is in normalized distance units
+                // The line equation is: w1*x + w2*y + b = offset_val * ||w||
+                // => w2*y = offset_val * ||w|| - b - w1*x
+                // => y = (offset_val * ||w|| - b - w1*x) / w2
+
+                let x_line = [], y_line = [];
+                let offset_raw = offset_val * normW; // Convert back to unnormalized space
+
+                if (Math.abs(w2) < 0.01) {
+                    // Vertical line: w1*x + b = offset_raw => x = (offset_raw - b) / w1
+                    let x_val = (offset_raw - b) / w1;
+                    x_line = [x_val, x_val];
+                    y_line = [-range, range];
+                } else {
+                    x_line = [-range, range];
+                    y_line = [
+                        (offset_raw - b - w1 * (-range)) / w2,
+                        (offset_raw - b - w1 * (range)) / w2
+                    ];
+                }
+                return { x: x_line, y: y_line };
+            }
+
+            let mainLine = getLinePoints(0);
+
+            // Margin lines at the distance of the nearest points (support vectors)
+            // min_dist_1 is the normalized distance to nearest Class + point
+            // min_dist_0 is the normalized distance to nearest Class - point
+            let marginLinePos = getLinePoints(min_dist_1 * sign);
+            let marginLineNeg = getLinePoints(-min_dist_0 * sign);
+
+            let traceMain = {
+                x: mainLine.x, y: mainLine.y,
+                mode: 'lines', name: 'Frontera de Decisión',
+                line: { color: '#2c3e50', width: 3 }
+            };
+
+            let traceMarginPos = {
+                x: marginLinePos.x, y: marginLinePos.y,
+                mode: 'lines', name: 'Margen +',
+                line: { color: '#3498db', width: 2, dash: 'dash' }
+            };
+
+            let traceMarginNeg = {
+                x: marginLineNeg.x, y: marginLineNeg.y,
+                mode: 'lines', name: 'Margen -',
+                line: { color: '#e74c3c', width: 2, dash: 'dash' }
+            };
+
+            let data = [trace0, trace1, traceMain];
+            if (!misclassified) {
+                data.push(traceMarginPos);
+                data.push(traceMarginNeg);
+            }
+
+            let layout = {
+                title: 'Espacio de Características (2D)',
+                xaxis: { title: 'x₁', range: [-5, 5] },
+                yaxis: { title: 'x₂', range: [-5, 5] },
+                margin: { t: 40, b: 40, l: 40, r: 20 },
+                showlegend: true,
+                legend: { orientation: 'h', y: -0.2 }
+            };
+
+            Plotly.react('svmChart', data, layout);
+        }
+
+        // Listeners
+        sliderW1.addEventListener('input', update);
+        sliderW2.addEventListener('input', update);
+        sliderB.addEventListener('input', update);
+
+        // Init
+        update();
+
+        window.onresize = function () {
+            Plotly.Plots.resize('svmChart');
+        };
+
+    </script>
+</body>
+
+</html>

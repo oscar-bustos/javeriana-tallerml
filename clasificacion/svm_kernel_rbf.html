@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVM: Kernel RBF (Radial Basis Function)</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #9b59b6;
+            --secondary-color: #2c3e50;
+            --accent-color: #e74c3c;
+            --bg-light: #f4f7f6;
+            --card-bg: #ffffff;
+            --shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-light);
+            padding: 20px;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: var(--secondary-color);
+        }
+
+        .container {
+            background-color: var(--card-bg);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: var(--shadow);
+            width: 95%;
+            max-width: 1400px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            margin: 0;
+            color: var(--secondary-color);
+            font-size: 2em;
+        }
+
+        p.subtitle {
+            color: #7f8c8d;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: var(--secondary-color);
+            color: white;
+            text-decoration: none;
+            border-radius: 30px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn:hover {
+            background-color: #34495e;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .controls-panel {
+            background-color: #f5eef8;
+            padding: 20px;
+            border-radius: 10px;
+            height: fit-content;
+            border: 1px solid #e8daef;
+        }
+
+        .equation-box {
+            background: #fff;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--primary-color);
+            color: #333;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+            background: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        .control-group input[type=range] {
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .val-display {
+            float: right;
+            color: var(--primary-color);
+            font-family: monospace;
+        }
+
+        .viz-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .info-cards {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .info-card {
+            background: linear-gradient(135deg, var(--primary-color), #8e44ad);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+
+        .info-card.warning {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+
+        .info-card.success {
+            background: linear-gradient(135deg, #27ae60, #219653);
+        }
+
+        .info-card h3 {
+            margin: 0;
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .info-card .value {
+            font-size: 1.8em;
+            font-weight: bold;
+            margin: 8px 0;
+        }
+
+        .info-card .note {
+            font-size: 0.75em;
+            opacity: 0.8;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #eee;
+            height: 550px;
+        }
+
+        .insight-box {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 10px;
+        }
+
+        .insight-box h4 {
+            margin: 0 0 10px 0;
+            font-size: 1em;
+        }
+
+        .insight-box p {
+            margin: 5px 0;
+            font-size: 0.85em;
+            opacity: 0.95;
+        }
+
+        .legend-custom {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .legend-dot.class-pos {
+            background: #3498db;
+        }
+
+        .legend-dot.class-neg {
+            background: #e74c3c;
+        }
+
+        .legend-dot.sv {
+            background: #f1c40f;
+            border: 2px solid #2c3e50;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <a href="../index.html" class="btn">← Volver al Menú</a>
+
+        <header>
+            <h1>SVM con Kernel RBF (Gaussiano)</h1>
+            <p class="subtitle">Explora cómo γ (gamma) y C afectan la frontera de decisión en datos no lineales.</p>
+        </header>
+
+        <div class="dashboard-grid">
+
+            <!-- Controls -->
+            <div class="controls-panel">
+                <h3>Parámetros del Kernel RBF</h3>
+                <p style="font-size:0.9em; color:#666;">Controla la complejidad de la frontera de decisión.</p>
+
+                <div class="equation-box">
+                    <strong>Kernel RBF (Gaussiano):</strong><br><br>
+                    K(x, x') = exp(-γ ||x - x'||²)
+                    <hr style="border:0; border-top:1px solid #eee; margin:10px 0;">
+                    <strong>Parámetros:</strong><br>
+                    <span style="color: var(--primary-color);">γ (gamma)</span>: Inverso del radio de influencia<br>
+                    <span style="color: var(--primary-color);">C</span>: Penalización por errores
+                </div>
+
+                <div class="control-group">
+                    <label>Gamma (γ) <span id="val_gamma" class="val-display">1.0</span></label>
+                    <input type="range" id="in_gamma" min="0.1" max="10" step="0.1" value="1.0">
+                    <small style="color:#888; font-size:0.75em;">Bajo = suave, Alto = complejo</small>
+                </div>
+
+                <div class="control-group">
+                    <label>Regularización (C) <span id="val_c" class="val-display">1.0</span></label>
+                    <input type="range" id="in_c" min="0.1" max="10" step="0.1" value="1.0">
+                    <small style="color:#888; font-size:0.75em;">Bajo = más margen, Alto = menos errores</small>
+                </div>
+
+                <div class="control-group">
+                    <label>Patrón de Datos</label>
+                    <select id="in_pattern" style="width:100%; padding:8px; border-radius:5px; border:1px solid #ddd;">
+                        <option value="moons">Lunas (Moons)</option>
+                        <option value="circles">Círculos Concéntricos</option>
+                        <option value="xor">Patrón XOR</option>
+                    </select>
+                </div>
+
+                <button class="btn" onclick="regenerateData()" style="width:100%; margin-top:10px;">
+                    🔄 Regenerar Datos
+                </button>
+
+                <div
+                    style="margin-top:20px; font-size:0.85em; color:#555; background: #fff; padding:15px; border-radius:8px;">
+                    <strong>¿Qué hace el Kernel RBF?</strong><br>
+                    Proyecta los datos a un espacio de dimensión infinita donde clases no-linealmente separables
+                    pueden separarse con un hiperplano.<br><br>
+                    <strong>γ alto:</strong> Cada punto tiene influencia local → frontera muy curva (riesgo de
+                    overfitting)<br>
+                    <strong>γ bajo:</strong> Influencia global → frontera suave (riesgo de underfitting)
+                </div>
+            </div>
+
+            <!-- Visualization -->
+            <div class="viz-panel">
+
+                <!-- Info Cards -->
+                <div class="info-cards">
+                    <div class="info-card" id="card_sv">
+                        <h3>Vectores de Soporte</h3>
+                        <div class="value" id="disp_sv">0</div>
+                        <p class="note">Puntos que definen la frontera</p>
+                    </div>
+                    <div class="info-card success" id="card_acc">
+                        <h3>Precisión (Training)</h3>
+                        <div class="value" id="disp_acc">100%</div>
+                        <p class="note">Clasificación correcta</p>
+                    </div>
+                </div>
+
+                <!-- Chart -->
+                <div class="chart-container" id="svmChart"></div>
+
+                <!-- Legend -->
+                <div class="legend-custom">
+                    <div class="legend-item">
+                        <div class="legend-dot class-pos"></div>
+                        <span>Clase +1</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot class-neg"></div>
+                        <span>Clase -1</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot sv"></div>
+                        <span>Vector de Soporte</span>
+                    </div>
+                </div>
+
+                <!-- Insight Box -->
+                <div class="insight-box" id="insight_box">
+                    <h4>💡 Observación</h4>
+                    <p id="insight_text">Ajusta γ para ver cómo cambia la complejidad de la frontera de decisión.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Data Generation ---
+        let dataX = [], dataY = [], dataLabels = [];
+        const n_points = 80;
+
+        function generateMoonsData() {
+            dataX = []; dataY = []; dataLabels = [];
+            let seed = Math.random() * 1000;
+            function random() {
+                let x = Math.sin(seed++) * 10000;
+                return x - Math.floor(x);
+            }
+
+            // Upper moon (class +1)
+            for (let i = 0; i < n_points / 2; i++) {
+                let angle = Math.PI * random();
+                let noise = (random() - 0.5) * 0.3;
+                dataX.push(Math.cos(angle) + noise);
+                dataY.push(Math.sin(angle) + noise);
+                dataLabels.push(1);
+            }
+
+            // Lower moon (class -1)
+            for (let i = 0; i < n_points / 2; i++) {
+                let angle = Math.PI * random();
+                let noise = (random() - 0.5) * 0.3;
+                dataX.push(1 - Math.cos(angle) + noise);
+                dataY.push(-Math.sin(angle) + 0.5 + noise);
+                dataLabels.push(-1);
+            }
+        }
+
+        function generateCirclesData() {
+            dataX = []; dataY = []; dataLabels = [];
+            let seed = Math.random() * 1000;
+            function random() {
+                let x = Math.sin(seed++) * 10000;
+                return x - Math.floor(x);
+            }
+
+            // Inner circle (class -1)
+            for (let i = 0; i < n_points / 2; i++) {
+                let angle = 2 * Math.PI * random();
+                let r = 0.4 + random() * 0.2;
+                dataX.push(r * Math.cos(angle));
+                dataY.push(r * Math.sin(angle));
+                dataLabels.push(-1);
+            }
+
+            // Outer circle (class +1)
+            for (let i = 0; i < n_points / 2; i++) {
+                let angle = 2 * Math.PI * random();
+                let r = 1.0 + random() * 0.3;
+                dataX.push(r * Math.cos(angle));
+                dataY.push(r * Math.sin(angle));
+                dataLabels.push(1);
+            }
+        }
+
+        function generateXORData() {
+            dataX = []; dataY = []; dataLabels = [];
+            let seed = Math.random() * 1000;
+            function random() {
+                let x = Math.sin(seed++) * 10000;
+                return x - Math.floor(x);
+            }
+
+            const offset = 0.7;
+            const spread = 0.25;
+
+            // Quadrant 1 (+1)
+            for (let i = 0; i < n_points / 4; i++) {
+                dataX.push(offset + (random() - 0.5) * spread);
+                dataY.push(offset + (random() - 0.5) * spread);
+                dataLabels.push(1);
+            }
+
+            // Quadrant 3 (+1)
+            for (let i = 0; i < n_points / 4; i++) {
+                dataX.push(-offset + (random() - 0.5) * spread);
+                dataY.push(-offset + (random() - 0.5) * spread);
+                dataLabels.push(1);
+            }
+
+            // Quadrant 2 (-1)
+            for (let i = 0; i < n_points / 4; i++) {
+                dataX.push(-offset + (random() - 0.5) * spread);
+                dataY.push(offset + (random() - 0.5) * spread);
+                dataLabels.push(-1);
+            }
+
+            // Quadrant 4 (-1)
+            for (let i = 0; i < n_points / 4; i++) {
+                dataX.push(offset + (random() - 0.5) * spread);
+                dataY.push(-offset + (random() - 0.5) * spread);
+                dataLabels.push(-1);
+            }
+        }
+
+        function regenerateData() {
+            const pattern = document.getElementById('in_pattern').value;
+            if (pattern === 'moons') generateMoonsData();
+            else if (pattern === 'circles') generateCirclesData();
+            else if (pattern === 'xor') generateXORData();
+            update();
+        }
+
+        // --- RBF Kernel SVM (simplified implementation) ---
+        function rbfKernel(x1, y1, x2, y2, gamma) {
+            const dist = (x1 - x2) ** 2 + (y1 - y2) ** 2;
+            return Math.exp(-gamma * dist);
+        }
+
+        // Simple SVM decision function approximation using kernel
+        function computeDecisionBoundary(gamma, C) {
+            const resolution = 50;
+            const range = 2;
+            const step = (2 * range) / resolution;
+
+            let zValues = [];
+            let xGrid = [];
+            let yGrid = [];
+
+            // Create grid
+            for (let i = 0; i <= resolution; i++) {
+                xGrid.push(-range + i * step);
+                yGrid.push(-range + i * step);
+            }
+
+            // Compute kernel-based decision values
+            // Using a simplified weighted voting approach
+            for (let j = 0; j <= resolution; j++) {
+                let row = [];
+                for (let i = 0; i <= resolution; i++) {
+                    let gx = xGrid[i];
+                    let gy = yGrid[j];
+
+                    let decision = 0;
+                    for (let k = 0; k < dataX.length; k++) {
+                        let kernelVal = rbfKernel(gx, gy, dataX[k], dataY[k], gamma);
+                        decision += dataLabels[k] * kernelVal * C;
+                    }
+
+                    row.push(decision);
+                }
+                zValues.push(row);
+            }
+
+            return { xGrid, yGrid, zValues };
+        }
+
+        // Identify support vectors (points near decision boundary)
+        function findSupportVectors(gamma, C) {
+            let svIndices = [];
+            const threshold = 0.3 * C;
+
+            for (let i = 0; i < dataX.length; i++) {
+                let decision = 0;
+                for (let k = 0; k < dataX.length; k++) {
+                    let kernelVal = rbfKernel(dataX[i], dataY[i], dataX[k], dataY[k], gamma);
+                    decision += dataLabels[k] * kernelVal * C;
+                }
+
+                // Points near the margin are support vectors
+                if (Math.abs(decision) < threshold + 1) {
+                    svIndices.push(i);
+                }
+            }
+
+            return svIndices;
+        }
+
+        // Calculate training accuracy
+        function calculateAccuracy(gamma, C) {
+            let correct = 0;
+            for (let i = 0; i < dataX.length; i++) {
+                let decision = 0;
+                for (let k = 0; k < dataX.length; k++) {
+                    let kernelVal = rbfKernel(dataX[i], dataY[i], dataX[k], dataY[k], gamma);
+                    decision += dataLabels[k] * kernelVal * C;
+                }
+                let predicted = decision > 0 ? 1 : -1;
+                if (predicted === dataLabels[i]) correct++;
+            }
+            return (correct / dataX.length * 100).toFixed(1);
+        }
+
+        // --- DOM Elements ---
+        const sliderGamma = document.getElementById('in_gamma');
+        const sliderC = document.getElementById('in_c');
+        const valGamma = document.getElementById('val_gamma');
+        const valC = document.getElementById('val_c');
+        const dispSV = document.getElementById('disp_sv');
+        const dispAcc = document.getElementById('disp_acc');
+        const insightText = document.getElementById('insight_text');
+        const cardAcc = document.getElementById('card_acc');
+
+        // --- Update Function ---
+        function update() {
+            const gamma = parseFloat(sliderGamma.value);
+            const C = parseFloat(sliderC.value);
+
+            valGamma.innerText = gamma.toFixed(1);
+            valC.innerText = C.toFixed(1);
+
+            // Compute decision boundary
+            const { xGrid, yGrid, zValues } = computeDecisionBoundary(gamma, C);
+
+            // Find support vectors
+            const svIndices = findSupportVectors(gamma, C);
+            dispSV.innerText = svIndices.length;
+
+            // Calculate accuracy
+            const acc = calculateAccuracy(gamma, C);
+            dispAcc.innerText = acc + '%';
+
+            // Update accuracy card color
+            if (parseFloat(acc) >= 95) {
+                cardAcc.className = 'info-card success';
+            } else if (parseFloat(acc) >= 80) {
+                cardAcc.className = 'info-card';
+            } else {
+                cardAcc.className = 'info-card warning';
+            }
+
+            // Generate insight
+            if (gamma > 5) {
+                insightText.innerText = '⚠️ γ muy alto: La frontera se ajusta demasiado a cada punto. Riesgo de OVERFITTING.';
+            } else if (gamma < 0.5) {
+                insightText.innerText = '⚠️ γ muy bajo: La frontera es muy suave y puede no capturar el patrón. Riesgo de UNDERFITTING.';
+            } else if (C > 5) {
+                insightText.innerText = '📊 C alto: Penaliza mucho los errores, frontera más ajustada a los datos.';
+            } else if (C < 0.5) {
+                insightText.innerText = '📊 C bajo: Permite más errores a cambio de un margen más amplio.';
+            } else {
+                insightText.innerText = '✅ Parámetros balanceados. La frontera captura el patrón sin sobreajustar.';
+            }
+
+            // Separate data by class
+            const class1_x = [], class1_y = [];
+            const class0_x = [], class0_y = [];
+            const sv_x = [], sv_y = [];
+
+            for (let i = 0; i < dataX.length; i++) {
+                if (svIndices.includes(i)) {
+                    sv_x.push(dataX[i]);
+                    sv_y.push(dataY[i]);
+                }
+                if (dataLabels[i] === 1) {
+                    class1_x.push(dataX[i]);
+                    class1_y.push(dataY[i]);
+                } else {
+                    class0_x.push(dataX[i]);
+                    class0_y.push(dataY[i]);
+                }
+            }
+
+            // Decision boundary contour
+            let traceContour = {
+                x: xGrid,
+                y: yGrid,
+                z: zValues,
+                type: 'contour',
+                colorscale: [
+                    [0, 'rgba(231, 76, 60, 0.3)'],
+                    [0.5, 'rgba(255, 255, 255, 0.1)'],
+                    [1, 'rgba(52, 152, 219, 0.3)']
+                ],
+                contours: {
+                    start: -5,
+                    end: 5,
+                    size: 0.5,
+                    showlines: true
+                },
+                line: { smoothing: 0.85, width: 1 },
+                showscale: false,
+                hoverinfo: 'skip'
+            };
+
+            // Decision boundary line (z = 0)
+            let traceBoundary = {
+                x: xGrid,
+                y: yGrid,
+                z: zValues,
+                type: 'contour',
+                contours: {
+                    start: 0,
+                    end: 0,
+                    size: 0.1,
+                    coloring: 'lines'
+                },
+                line: { color: '#2c3e50', width: 3 },
+                showscale: false,
+                hoverinfo: 'skip'
+            };
+
+            // Data points
+            let traceClass1 = {
+                x: class1_x, y: class1_y,
+                mode: 'markers',
+                name: 'Clase +1',
+                marker: { size: 10, color: '#3498db', symbol: 'circle', line: { width: 1, color: '#2980b9' } }
+            };
+
+            let traceClass0 = {
+                x: class0_x, y: class0_y,
+                mode: 'markers',
+                name: 'Clase -1',
+                marker: { size: 10, color: '#e74c3c', symbol: 'circle', line: { width: 1, color: '#c0392b' } }
+            };
+
+            // Support vectors (highlighted)
+            let traceSV = {
+                x: sv_x, y: sv_y,
+                mode: 'markers',
+                name: 'Vectores de Soporte',
+                marker: {
+                    size: 18,
+                    color: 'rgba(241, 196, 15, 0.6)',
+                    symbol: 'circle',
+                    line: { width: 3, color: '#2c3e50' }
+                }
+            };
+
+            let layout = {
+                title: {
+                    text: 'Frontera de Decisión con Kernel RBF',
+                    font: { size: 16 }
+                },
+                xaxis: { title: 'x₁', range: [-2, 2], zeroline: true },
+                yaxis: { title: 'x₂', range: [-2, 2], zeroline: true },
+                margin: { t: 50, b: 50, l: 50, r: 30 },
+                showlegend: false
+            };
+
+            Plotly.react('svmChart', [traceContour, traceBoundary, traceSV, traceClass0, traceClass1], layout);
+        }
+
+        // --- Event Listeners ---
+        sliderGamma.addEventListener('input', update);
+        sliderC.addEventListener('input', update);
+        document.getElementById('in_pattern').addEventListener('change', regenerateData);
+
+        // --- Initialize ---
+        generateMoonsData();
+        update();
+
+        window.onresize = function () {
+            Plotly.Plots.resize('svmChart');
+        };
+    </script>
+</body>
+
+</html>
