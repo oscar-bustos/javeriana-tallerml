@@ -1,0 +1,168 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -336,
+        -112
+      ],
+      "id": "0334e887-07ff-476b-a862-70a926f682a9",
+      "name": "Telegram Trigger",
+      "webhookId": "d7ef13f9-179b-4980-b3f4-61abf1f9a1a5",
+      "credentials": {
+        "telegramApi": {
+          "id": "NCJ9EEuNezzGGX0R",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "\"Eres un asistente de bienes raíces en California. El usuario te describirá una casa. Tu único trabajo es extraer los datos y responder ÚNICAMENTE con un JSON válido usando estas claves exactas: MedInc (Ingreso medio del barrio, ej: 8.32), HouseAge (Edad de la casa), AveRooms (Promedio de cuartos), AveBedrms (Promedio de baños/alcobas, ej: 1.0), Population (Población del barrio, ej: 300), AveOccup (Ocupantes promedio, ej: 2.5), Latitude (ej: 37.88), Longitude (ej: -122.23). Si el usuario no menciona algún dato, inventa un valor promedio razonable para California. NO respondas nada más que el JSON.\"",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -128,
+        -112
+      ],
+      "id": "2cba8143-7f98-449e-a457-82a573608d8e",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -272,
+        96
+      ],
+      "id": "0ecfb949-7b63-45b9-94a2-0d71af7ad01f",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "04bvVgesyDyu0481",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "=El precio estimado para tu vivienda es de: $ {{ $json.precio_estimado_miles_usd }} mil dólares\"",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        432,
+        -112
+      ],
+      "id": "09894073-3320-49ef-b81d-9212a5cb9e8f",
+      "name": "Send a text message",
+      "webhookId": "1d66cf61-e655-45f5-9fb8-352e63fc7396",
+      "credentials": {
+        "telegramApi": {
+          "id": "NCJ9EEuNezzGGX0R",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://olbustosa-webservicetest.hf.space/predict",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.output }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        224,
+        -112
+      ],
+      "id": "a331178f-d134-4821-9da6-2b284d3afcf0",
+      "name": "HTTP Request"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "14843206-444a-442d-bc59-7f0b79ca3477",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2a66c8ed5aa7152f2c6ff9810a334b155342dbad1d0597bfe42138e17e59d4b7"
+  },
+  "id": "uEr2sPoBlLCtfW2F",
+  "tags": []
+}
