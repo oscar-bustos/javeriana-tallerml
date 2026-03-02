@@ -122,7 +122,7 @@ Ingresa a tu cuenta de n8n y haz clic en **Add Workflow**. Deberás configurar l
   * **Operación:** Send Message.
   * **Chat ID:** Mapea el ID del chat del primer nodo (`{{ $('Telegram Trigger').item.json.message.chat.id }}`).
   * **Text:** Escribe una respuesta amigable mezclando texto y el resultado de la API. Ejemplo:
-    > "¡Hola! Analicé las características de la casa que me mencionaste. 🏠 Según mi modelo de Inteligencia Artificial, el precio estimado en el mercado es de ${{ $('HTTP Request').item.json.precio_estimado_miles_usd }} mil dólares."
+    > "¡El precio estimado para tu vivienda es de: $ {{ $json.precio_estimado_miles_usd }} mil dólares""
 
 ### Paso 3: La Prueba de Fuego
 1. En n8n, guarda tu workflow y haz clic en **Test Workflow** (o activa el switch de *Active*).
