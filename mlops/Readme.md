@@ -81,3 +81,53 @@ Ahora que tenemos nuestro "cerebro" (`.pkl`), necesitamos construirle un cuerpo 
     "Latitude": 37.88,
     "Longitude": -122.23
 }
+```
+
+> **Éxito:** Deberías recibir una respuesta en la parte inferior con la predicción del precio de la vivienda. ¡Tu modelo ya está en internet!
+
+---
+
+## Parte 3: El Chatbot Inteligente con Telegram y n8n
+
+Nadie quiere abrir Postman para saber el precio de una casa, y mucho menos escribir código para preguntarlo. Vamos a conectar nuestra API a un bot de Telegram. Para que el bot entienda mensajes naturales como *"Tengo una casa de 10 años con 3 cuartos..."*, usaremos Inteligencia Artificial en n8n para extraer los datos automáticamente.
+
+### Paso 1: Crear el Bot en Telegram
+1. Abre Telegram y busca al usuario **@BotFather** (el verificador oficial de bots).
+2. Envíale el comando `/newbot` y sigue las instrucciones para darle un nombre y un usuario (debe terminar en *bot*).
+3. BotFather te entregará un **Token HTTP API** (una cadena larga de texto). Cópialo y mantenlo a la mano.
+
+### Paso 2: Construir el "Cerebro" Conversacional en n8n
+Ingresa a tu cuenta de n8n y haz clic en **Add Workflow**. Deberás configurar los siguientes nodos en orden:
+
+* **Nodo 1 - El Oído (Telegram Trigger):**
+  * Agrega un nodo **Telegram Trigger**.
+  * Crea una nueva credencial y pega el Token de BotFather.
+  * Configúralo para que escuche eventos de tipo `Message`.
+
+* **Nodo 2 - El Traductor (OpenAI / AI Node):**
+  * Agrega un nodo **OpenAI** (o el proveedor de IA que te asigne el profesor, como Groq o Anthropic).
+  * **Acción:** Chat / Generate Text.
+  * **System Prompt (El contexto):** Escribe lo siguiente para forzar a la IA a estructurar los datos:
+    > "Eres un asistente de bienes raíces en California. El usuario te describirá una casa. Tu único trabajo es extraer los datos y responder ÚNICAMENTE con un JSON válido usando estas claves exactas: `MedInc` (Ingreso medio del barrio, ej: 8.32), `HouseAge` (Edad de la casa), `AveRooms` (Promedio de cuartos), `AveBedrms` (Promedio de baños/alcobas, ej: 1.0), `Population` (Población del barrio, ej: 300), `AveOccup` (Ocupantes promedio, ej: 2.5), `Latitude` (ej: 37.88), `Longitude` (ej: -122.23). Si el usuario no menciona algún dato, inventa un valor promedio razonable para California. NO respondas nada más que el JSON."
+  * **User Message:** Conéctalo dinámicamente al texto que llegó del nodo de Telegram (ej. `{{ $json.message.text }}`).
+
+* **Nodo 3 - El Puente (HTTP Request):**
+  * Conecta este nodo después de la IA.
+  * **Method:** `POST`
+  * **URL:** La URL de tu API en Hugging Face (`https://tu-usuario-api-viviendas.hf.space/predict`).
+  * **Body Parameters:** Selecciona enviar JSON (Raw/Custom) y pásale dinámicamente la respuesta que generó el nodo de IA (`{{ $json.message.content }}`).
+
+* **Nodo 4 - La Voz (Telegram):**
+  * Agrega un nodo regular de **Telegram**.
+  * **Operación:** Send Message.
+  * **Chat ID:** Mapea el ID del chat del primer nodo (`{{ $('Telegram Trigger').item.json.message.chat.id }}`).
+  * **Text:** Escribe una respuesta amigable mezclando texto y el resultado de la API. Ejemplo:
+    > "¡Hola! Analicé las características de la casa que me mencionaste. 🏠 Según mi modelo de Inteligencia Artificial, el precio estimado en el mercado es de ${{ $('HTTP Request').item.json.precio_estimado_miles_usd }} mil dólares."
+
+### Paso 3: La Prueba de Fuego
+1. En n8n, guarda tu workflow y haz clic en **Test Workflow** (o activa el switch de *Active*).
+2. Abre Telegram, busca tu bot y escríbele un mensaje completamente natural:
+   > *"Hola, quiero evaluar una casa. Tiene unos 15 años de antigüedad, tiene 5 cuartos en total y 2 baños. Vivimos 4 personas ahí. Está ubicada en la latitud 35.0 y longitud -120.0."*
+3. Observa cómo fluye la información en n8n: La IA convierte tu texto en JSON, se lo envía a tu contenedor en Hugging Face, Hugging Face usa tu modelo de Databricks, y Telegram te devuelve el precio. 
+
+**¡Acabas de construir un sistema de Machine Learning de extremo a extremo!**
