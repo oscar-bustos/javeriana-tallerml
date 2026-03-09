@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PCA: Descubre la Componente Principal</title>
+    <!-- Incluir Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <!-- Incluir math.js para cálculos rápidos si se requiere, aunque lo haré a mano para PCA base -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.min.js"></script>
+
+    <style>
+        :root {
+            --primary-color: #8e44ad;
+            --secondary-color: #2c3e50;
+            --accent-color: #9b59b6;
+            --success-color: #27ae60;
+            --bg-light: #f4f7f6;
+            --card-bg: #ffffff;
+            --shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-light);
+            padding: 20px;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: var(--secondary-color);
+        }
+
+        .container {
+            background-color: var(--card-bg);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: var(--shadow);
+            width: 95%;
+            max-width: 1500px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            margin: 0;
+            color: var(--secondary-color);
+            font-size: 1.8em;
+        }
+
+        p.subtitle {
+            color: #7f8c8d;
+            font-size: 0.95em;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: var(--secondary-color);
+            color: white;
+            text-decoration: none;
+            border-radius: 30px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn:hover {
+            background-color: #34495e;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 320px 1fr 1fr;
+            gap: 20px;
+            margin-top: 15px;
+        }
+
+        @media (max-width: 1100px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .controls-panel {
+            background-color: #f5eef8;
+            padding: 20px;
+            border-radius: 10px;
+            height: fit-content;
+            border: 1px solid #ebdef0;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+            background: white;
+            padding: 12px 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+            font-weight: 600;
+            color: var(--secondary-color);
+        }
+
+        .control-group input[type=range] {
+            width: 100%;
+            cursor: pointer;
+            accent-color: var(--primary-color);
+        }
+
+        .val-display {
+            float: right;
+            color: var(--primary-color);
+            font-family: monospace;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid #eee;
+            height: 450px;
+        }
+
+        .chart-header {
+            text-align: center;
+            font-weight: 600;
+            color: var(--secondary-color);
+            margin-bottom: 10px;
+            padding: 8px;
+            background: linear-gradient(135deg, #ecf0f1, #fff);
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chart-header span {
+            color: var(--primary-color);
+        }
+
+        .metrics-box {
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .metrics-box.success {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            transform: scale(1.02);
+            box-shadow: 0 0 15px rgba(46, 204, 113, 0.6);
+        }
+
+        .metrics-box h4 {
+            margin: 0 0 10px 0;
+            font-size: 0.95em;
+        }
+
+        .metrics-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            font-family: monospace;
+        }
+
+        .insight-panel {
+            background: linear-gradient(135deg, #34495e, #2c3e50);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            grid-column: span 2;
+        }
+
+        @media (max-width: 1100px) {
+            .insight-panel {
+                grid-column: span 1;
+            }
+        }
+
+        .insight-panel h4 {
+            margin: 0 0 10px 0;
+            color: #ecf0f1;
+        }
+
+        .insight-panel p {
+            margin: 5px 0;
+            font-size: 0.9em;
+            line-height: 1.5;
+            color: #bdc3c7;
+        }
+
+        .info-text {
+            font-size: 0.85em;
+            color: #555;
+            margin-top: 15px;
+            background: #fff;
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        /* Botón de animar */
+        .btn-animate {
+            background-color: #3498db;
+        }
+
+        .btn-animate:hover {
+            background-color: #2980b9;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <a href="../index.html" class="btn">← Volver al Menú</a>
+
+        <header>
+            <h1>📉 Encuentra la Componente Principal</h1>
+            <p class="subtitle">Rota la línea proyectante para descubrir experimentalmente la dirección de
+                <strong>máxima varianza</strong> (PC1).</p>
+        </header>
+
+        <div class="main-layout">
+
+            <!-- Controles -->
+            <div class="controls-panel">
+                <h3 style="margin-top:0; color:var(--primary-color);">Simulador</h3>
+
+                <div class="control-group">
+                    <label>Rotación Lente (θ) <span id="val_angle" class="val-display">0°</span></label>
+                    <input type="range" id="in_angle" min="0" max="180" step="1" value="0">
+                    <small style="color:#888; font-size:0.75em;">Gira el eje para cambiar la perspectiva 1D.</small>
+                </div>
+
+                <div class="control-group">
+                    <label>Dispersión de Puntos <span id="val_corr" class="val-display">0.85</span></label>
+                    <input type="range" id="in_corr" min="0.0" max="0.99" step="0.01" value="0.85">
+                    <small style="color:#888; font-size:0.75em;">Ajusta qué tan "alargada" es la nube principal.</small>
+                </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn" onclick="regenerateAndPlot()"
+                        style="flex: 1; margin-top:10px; margin-bottom: 0px; font-size:0.85em; background-color: var(--primary-color); padding: 8px;">
+                        🔄 Nuevos Datos
+                    </button>
+                    <button class="btn btn-animate" onclick="autoSweep()" id="btn_sweep"
+                        style="flex: 1; margin-top:10px; margin-bottom: 0px; font-size:0.85em; padding: 8px;">
+                        ▶️ Barrido
+                    </button>
+                </div>
+
+                <div class="metrics-box" id="metrics_box">
+                    <h4>Varianza Proyectada Capturada</h4>
+                    <div class="metrics-value" id="var_proyectada">0.00</div>
+                    <small style="opacity: 0.9;" id="var_status">Buscando el máximo...</small>
+                </div>
+
+                <div class="info-text">
+                    <strong>Tu Misión:</strong><br>
+                    Intenta mover el deslizador de Rotación (θ) hasta que el número de <strong>Varianza
+                        Proyectada</strong> alcance su valor máximo posible.
+                    <br><br>
+                    Esa línea, donde los puntos se ven más "esparcidos" en 1D, es la famosa <strong>PC1</strong>.
+                </div>
+            </div>
+
+            <!-- Gráfico 2D Original -->
+            <div>
+                <div class="chart-header">
+                    <span style="color:var(--secondary-color)">🌍 Espacio Original 2D</span>
+                </div>
+                <div class="chart-container" id="chart2D"></div>
+            </div>
+
+            <!-- Gráfico 1D Proyectado -->
+            <div>
+                <div class="chart-header">
+                    <span style="color:var(--secondary-color)">📏 La Sombra (Proyección 1D sobre el Lente)</span>
+                </div>
+                <div class="chart-container" id="chart1D"></div>
+            </div>
+
+            <!-- Panel de Insights -->
+            <div class="insight-panel">
+                <h4>🎯 Análisis de Varianza</h4>
+                <p id="insight_text">...</p>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // --- Variables Globales ---
+        let currentDataX = [];
+        let currentDataY = [];
+        const n_points = 200;
+
+        let truePC1Angle = 0; // Guardaremos el angulo real de maxima varianza (en grados, 0-180)
+        let trueMaxVar = 0;   // La varianza en ese angulo real
+        let sweepInterval = null;
+
+        // Elementos DOM
+        const sliderAngle = document.getElementById('in_angle');
+        const sliderCorr = document.getElementById('in_corr');
+        const valAngle = document.getElementById('val_angle');
+        const valCorr = document.getElementById('val_corr');
+        const varProyectadaDisplay = document.getElementById('var_proyectada');
+        const varStatus = document.getElementById('var_status');
+        const metricsBox = document.getElementById('metrics_box');
+        const insightText = document.getElementById('insight_text');
+        const btnSweep = document.getElementById('btn_sweep');
+
+        // Generación Gaussiana
+        function randn_bm() {
+            let u = 0, v = 0;
+            while (u === 0) u = Math.random();
+            while (v === 0) v = Math.random();
+            return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+        }
+
+        // Generar datos 2D
+        function generateData() {
+            const r = parseFloat(sliderCorr.value);
+
+            // Queremos generar una nube orientada de forma oblicua al azar, no siempre a 45 grados.
+            // Para eso, primero generamos nube con covarianza y luego la rotamos un angulo base fijo.
+            currentDataX = [];
+            currentDataY = [];
+
+            // Cov(x,x) = 1, Cov(y,y) = 1, Cov(x,y) = r
+            const l11 = 1;
+            const l21 = r;
+            const l22 = Math.sqrt(1 - r * r);
+
+            if (!window.z1_base) regenerateBaseData();
+
+            // Elegir un angulo rotacion aleatorio para la nube, asi el maximo no siempre está en los mismos grados
+            if (!window.cloud_angle) window.cloud_angle = Math.random() * Math.PI;
+
+            let cos_c = Math.cos(window.cloud_angle);
+            let sin_c = Math.sin(window.cloud_angle);
+
+            for (let i = 0; i < n_points; i++) {
+                let z1 = window.z1_base[i];
+                let z2 = window.z2_base[i];
+
+                let x_raw = l11 * z1;
+                let y_raw = l21 * z1 + l22 * z2;
+
+                // Rotar nube inicial
+                let x = x_raw * cos_c - y_raw * sin_c;
+                let y = x_raw * sin_c + y_raw * cos_c;
+
+                currentDataX.push(x * 3); // Escalar viz
+                currentDataY.push(y * 3);
+            }
+
+            // Centrar exactamente
+            const meanX = math.mean(currentDataX);
+            const meanY = math.mean(currentDataY);
+            currentDataX = currentDataX.map(x => x - meanX);
+            currentDataY = currentDataY.map(y => y - meanY);
+
+            // -- Precalcular el verdadero PC1 ("La respuesta correcta") --
+            let covXX = 0, covYY = 0, covXY = 0;
+            for (let i = 0; i < n_points; i++) {
+                covXX += currentDataX[i] * currentDataX[i];
+                covYY += currentDataY[i] * currentDataY[i];
+                covXY += currentDataX[i] * currentDataY[i];
+            }
+            covXX /= (n_points - 1);
+            covYY /= (n_points - 1);
+            covXY /= (n_points - 1);
+
+            const tr = covXX + covYY;
+            const det = covXX * covYY - covXY * covXY;
+            const discriminante = Math.sqrt(tr * tr - 4 * det);
+
+            let eig1 = (tr + discriminante) / 2; // Varianza máxima trues
+
+            let vec1 = [1, (eig1 - covXX) / covXY];
+            const norm1 = Math.sqrt(vec1[0] * vec1[0] + vec1[1] * vec1[1]);
+            vec1 = [vec1[0] / norm1, vec1[1] / norm1];
+
+            // Convertir vec1 a grados
+            let p_angle = Math.atan2(vec1[1], vec1[0]) * (180 / Math.PI);
+            if (p_angle < 0) p_angle += 180; // Queremos unilineas 0-180
+
+            truePC1Angle = p_angle;
+            trueMaxVar = eig1;
+        }
+
+        function regenerateBaseData() {
+            window.z1_base = [];
+            window.z2_base = [];
+            window.cloud_angle = Math.random() * Math.PI; // Nuevo giro general
+            for (let i = 0; i < n_points; i++) {
+                window.z1_base.push(randn_bm());
+                window.z2_base.push(randn_bm());
+            }
+        }
+
+        function getProjectionsAndVariance(angle_deg) {
+            const angle_rad = angle_deg * (Math.PI / 180);
+            const vec_dir = [Math.cos(angle_rad), Math.sin(angle_rad)];
+
+            let proj = [];
+            let var_sum = 0;
+
+            // Proyecto: Punto · Vector
+            for (let i = 0; i < n_points; i++) {
+                let dot = currentDataX[i] * vec_dir[0] + currentDataY[i] * vec_dir[1];
+                proj.push(dot);
+                var_sum += dot * dot; // Ya estan centrados, la media de las proyecciones es ~0
+            }
+
+            return {
+                projections: proj,
+                variance: var_sum / (n_points - 1)
+            };
+        }
+
+
+        function updatePlots() {
+            const angleDeg = parseFloat(sliderAngle.value);
+            valAngle.innerText = angleDeg + "°";
+            valCorr.innerText = parseFloat(sliderCorr.value).toFixed(2);
+
+            generateData(); // Actualiza currentData si la correlación cambió, mantiene los mismos si no
+
+            const results = getProjectionsAndVariance(angleDeg);
+
+            // --- Logica de Acierto / Score ---
+            const angleDiff = Math.abs(angleDeg - truePC1Angle);
+            const angleDiffWrapped = Math.min(angleDiff, 180 - angleDiff);
+            const isMatch = angleDiffWrapped <= 3; // Margen de error 3 grados
+
+            const currentVarScore = results.variance;
+            const varRatio = (currentVarScore / trueMaxVar) * 100;
+
+            // Actualizar UI de métricas
+            varProyectadaDisplay.innerText = currentVarScore.toFixed(2);
+
+            if (isMatch) {
+                metricsBox.className = "metrics-box success";
+                varStatus.innerHTML = "🎯 ¡PC1 ENCONTRADA! (Máxima varianza)";
+                insightText.innerHTML = `<strong>¡Excelente trabajo!</strong> Has sintonizado la "antena" justo en la dirección donde los datos presentan más propagación.<br><br>Esa línea de <strong>${angleDeg}°</strong> tiene una varianza proyectada máxima de ${currentVarScore.toFixed(2)}.<br><br>Esto es, literalmente, lo que calcula el algoritmo matemático formal del Análisis de Componentes Principales al resolver autovectores.`;
+            } else {
+                metricsBox.className = "metrics-box";
+                varStatus.innerHTML = isMatch ? "¡Acertaste!" : `Reteniendo: ${varRatio.toFixed(1)}% del máximo absoluto`;
+                insightText.innerHTML = `Notarás que si cambias el ángulo a una dirección perpendicular donde la nube es "delgada", los puntos proyectados abajo se aprietan mucho juntos (baja varianza).<br><br>Sigue rotando para esparcir los puntos 1D lo más ancho que puedas.`;
+            }
+
+            // --- Plot 2D ---
+            const lineRad = angleDeg * (Math.PI / 180);
+            const lineLen = 15; // Línea que cruza todo el plot
+            const projLineX = [-lineLen * Math.cos(lineRad), lineLen * Math.cos(lineRad)];
+            const projLineY = [-lineLen * Math.sin(lineRad), lineLen * Math.sin(lineRad)];
+
+            let traceData = {
+                x: currentDataX,
+                y: currentDataY,
+                mode: 'markers',
+                type: 'scatter',
+                name: 'Datos (Centrados)',
+                marker: { size: 7, color: 'rgba(41, 128, 185, 0.5)', line: { color: '#2980b9', width: 1 } },
+                hoverinfo: 'none'
+            };
+
+            let traceProjLine = {
+                x: projLineX,
+                y: projLineY,
+                mode: 'lines',
+                type: 'scatter',
+                name: 'Eje Usuario (θ)',
+                line: { color: isMatch ? '#27ae60' : 'rgba(142, 68, 173, 0.8)', width: 3 },
+                hoverinfo: 'none'
+            };
+
+            // Dibujar lineas sutiles conectando Puntos Originales <-> Eje Proyectado (Ayuda Visual 3D)
+            let shapeLines = [];
+            // Para no sobrecargar SVG, agarramos solo 25 puntos azar
+            for (let i = 0; i < n_points; i += (n_points / 25)) {
+                let idx = Math.floor(i);
+                let x0 = currentDataX[idx];
+                let y0 = currentDataY[idx];
+
+                // Proyeccion de (x,y) en el vec_dir => p * vec_dir
+                let p = results.projections[idx];
+                let projX = p * Math.cos(lineRad);
+                let projY = p * Math.sin(lineRad);
+
+                shapeLines.push({
+                    type: 'line',
+                    x0: x0, y0: y0,
+                    x1: projX, y1: projY,
+                    line: { color: 'rgba(189, 195, 199, 0.3)', width: 1, dash: 'dot' }
+                });
+            }
+
+            let layout2D = {
+                xaxis: { title: 'X₁', range: [-12, 12], zeroline: true, gridcolor: '#eee' },
+                yaxis: { title: 'X₂', range: [-12, 12], zeroline: true, gridcolor: '#eee' },
+                margin: { t: 20, b: 40, l: 45, r: 20 },
+                showlegend: false,
+                shapes: shapeLines
+            };
+
+            Plotly.react('chart2D', [traceData, traceProjLine], layout2D);
+
+            // --- Plot 1D Proyectado ---
+            // Le damos algo de jitter en Y para que no se superpongan brutalmente y se vea la "densidad" real
+            const jitterY = results.projections.map(() => (Math.random() - 0.5) * 0.15);
+
+            let traceProj = {
+                x: results.projections,
+                y: jitterY,
+                mode: 'markers',
+                type: 'scatter',
+                name: 'Proyección 1D',
+                marker: {
+                    size: 8,
+                    color: isMatch ? 'rgba(39, 174, 96, 0.7)' : 'rgba(142, 68, 173, 0.6)',
+                    line: { color: isMatch ? '#27ae60' : '#8e44ad', width: 1 },
+                },
+                hoverinfo: 'x'
+            };
+
+            let layout1D = {
+                xaxis: { title: 'Valor sobre la línea (Lente)', range: [-14, 14], zeroline: true, gridcolor: '#eee' },
+                yaxis: { title: '', range: [-0.5, 0.5], showticklabels: false, zeroline: false, showgrid: false },
+                margin: { t: 50, b: 50, l: 20, r: 20 },
+                showlegend: false,
+                annotations: [{
+                    x: 0, y: 0.35,
+                    xref: 'x', yref: 'y',
+                    text: 'Mira cómo se esparcen u ocultan los puntos según el ángulo.',
+                    showarrow: false,
+                    font: { size: 12, color: '#7f8c8d' }
+                }]
+            };
+
+            Plotly.react('chart1D', [traceProj], layout1D, { staticPlot: false });
+        }
+
+        // --- Event Listeners ---
+        sliderAngle.addEventListener('input', updatePlots);
+        sliderCorr.addEventListener('input', updatePlots);
+
+        function regenerateAndPlot() {
+            regenerateBaseData();
+            updatePlots();
+        }
+
+        function autoSweep() {
+            if (sweepInterval) {
+                clearInterval(sweepInterval);
+                sweepInterval = null;
+                btnSweep.innerHTML = "▶️ Barrido";
+                return;
+            }
+
+            btnSweep.innerHTML = "⏹️ Detener";
+            let val = parseFloat(sliderAngle.value);
+
+            sweepInterval = setInterval(() => {
+                val += 1;
+                if (val > 180) val = 0;
+                sliderAngle.value = val;
+                updatePlots();
+            }, 30); // 30ms fps
+        }
+
+        // --- Init ---
+        window.onload = function () {
+            regenerateBaseData();
+            updatePlots();
+        };
+
+        window.onresize = function () {
+            Plotly.Plots.resize('chart2D');
+            Plotly.Plots.resize('chart1D');
+        };
+
+    </script>
+</body>
+
+</html>
