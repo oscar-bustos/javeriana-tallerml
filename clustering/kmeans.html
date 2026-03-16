@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>K-Means: Agrupamiento y la Regla del Codo</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary-color: #8e44ad;
+            --secondary-color: #2c3e50;
+            --accent-color: #9b59b6;
+            --success-color: #27ae60;
+            --bg-light: #f4f7f6;
+            --card-bg: #ffffff;
+            --shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-light);
+            padding: 20px;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: var(--secondary-color);
+        }
+
+        .container {
+            background-color: var(--card-bg);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: var(--shadow);
+            width: 95%;
+            max-width: 1500px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            margin: 0;
+            color: var(--secondary-color);
+            font-size: 1.8em;
+        }
+
+        p.subtitle {
+            color: #7f8c8d;
+            font-size: 0.95em;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: var(--secondary-color);
+            color: white;
+            text-decoration: none;
+            border-radius: 30px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .btn:hover:not(:disabled) {
+            background-color: #34495e;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            margin-top: 15px;
+        }
+
+        @media (max-width: 1100px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .controls-panel {
+            background-color: #f5eef8;
+            padding: 20px;
+            border-radius: 10px;
+            height: fit-content;
+            border: 1px solid #ebdef0;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+            background: white;
+            padding: 12px 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+            font-weight: 600;
+            color: var(--secondary-color);
+        }
+
+        .control-group input[type=range],
+        .control-group select {
+            width: 100%;
+            cursor: pointer;
+            accent-color: var(--primary-color);
+            padding: 5px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-family: inherit;
+        }
+
+        .val-display {
+            float: right;
+            color: var(--primary-color);
+            font-family: monospace;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid #eee;
+        }
+
+        .metrics-box {
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .metrics-box h4 {
+            margin: 0 0 10px 0;
+            font-size: 0.95em;
+        }
+
+        .metrics-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            font-family: monospace;
+        }
+
+        .insight-panel {
+            background: linear-gradient(135deg, #34495e, #2c3e50);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .insight-panel h4 {
+            margin: 0 0 10px 0;
+            color: #ecf0f1;
+        }
+
+        .insight-panel p {
+            margin: 5px 0;
+            font-size: 0.9em;
+            line-height: 1.5;
+            color: #bdc3c7;
+        }
+
+        .btn-action {
+            background-color: #3498db;
+        }
+
+        .btn-action:hover:not(:disabled) {
+            background-color: #2980b9;
+        }
+
+        .btn-success {
+            background-color: #27ae60;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            background-color: #2ecc71;
+        }
+
+        input[type="number"] {
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            width: 80px;
+            font-family: inherit;
+        }
+
+        .plots-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <a href="../index.html" class="btn">← Volver al Menú</a>
+
+        <header>
+            <h1>🎯 K-Means y la Regla del Codo</h1>
+            <p class="subtitle">Descubre cómo el algoritmo agrupa los datos, y usa la inercia para encontrar el número
+                de clusters (K) ideal.</p>
+        </header>
+
+        <div class="main-layout">
+
+            <!-- Controles y Gamificación -->
+            <div class="left-panel">
+                <div class="controls-panel">
+                    <h3 style="margin-top:0; color:var(--primary-color);">Simulador</h3>
+
+                    <div class="metrics-box" id="metrics_box" style="margin-top: 0; margin-bottom: 15px;">
+                        <h4>Inercia Actual (Suma de Distancias²)</h4>
+                        <div class="metrics-value" id="val_inertia">0.00</div>
+                    </div>
+
+                    <div class="control-group">
+                        <label>Dataset</label>
+                        <select id="sel_dataset" onchange="changeDataset()">
+                            <option value="blobs">Blobs (Grupos Esféricos)</option>
+                            <option value="aniso">Anisotrópicos (Alargados)</option>
+                            <option value="moons">Galaxias (Lunas)</option>
+                            <option value="circles">Círculos Concéntricos</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label>Número de Clusters (K) <span id="val_k" class="val-display">3</span></label>
+                        <input type="range" id="in_k" min="1" max="7" step="1" value="3" onchange="changeK()">
+                    </div>
+
+                    <div style="display: flex; gap: 10px; margin-top:15px;">
+                        <button class="btn" style="flex: 1; padding: 8px;" onclick="initKMeans()">🎲 Reiniciar
+                            Centroides</button>
+                    </div>
+
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-action" style="flex: 1; padding: 8px;" id="btn_step"
+                            onclick="stepKMeans()">👣 Un Paso</button>
+                    </div>
+                </div>
+            </div> <!-- Close left-panel -->
+
+            <!-- Gráficos -->
+            <div class="chart-container" id="chartScatter" style="height: 550px; flex-grow: 1;"></div>
+        </div>
+
+        <script>
+            // --- Variables Globales ---
+            const n_points = 300;
+            let X = [];
+            let y_true = [];
+            let centroids = [];
+            let assignments = [];
+
+            let K = 3;
+            let datasetType = 'blobs';
+            let currentInertia = 0;
+            let converged = false;
+
+
+
+            // Colores para clusters
+            const colors = ['#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6', '#e67e22', '#34495e'];
+
+            // Elementos DOM
+            const sliderK = document.getElementById('in_k');
+            const valK = document.getElementById('val_k');
+            const selDataset = document.getElementById('sel_dataset');
+            const valInertia = document.getElementById('val_inertia');
+            const btnStep = document.getElementById('btn_step');
+
+            // --- Generadores de Datos ---
+            function makeBlobs(n, std) {
+                let pts = [], labels = [];
+                let c = [[-3, -3], [3, 3], [-3, 3]]; // 3 blobs verdaderos
+                let nPerCenter = Math.floor(n / c.length);
+                for (let i = 0; i < c.length; i++) {
+                    for (let j = 0; j < nPerCenter; j++) {
+                        let u1 = Math.random(), u2 = Math.random();
+                        let z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+                        let z1 = Math.sqrt(-2.0 * Math.log(u1)) * Math.sin(2.0 * Math.PI * u2);
+                        pts.push([c[i][0] + z0 * std, c[i][1] + z1 * std]);
+                        labels.push(i);
+                    }
+                }
+                return { X: pts, y: labels };
+            }
+
+            function makeAnisotropic(n) {
+                let o = makeBlobs(n, 1);
+                let transform = [[0.6, -0.6], [-0.4, 0.8]];
+                let X_new = o.X.map(pt => [
+                    pt[0] * transform[0][0] + pt[1] * transform[1][0],
+                    pt[0] * transform[0][1] + pt[1] * transform[1][1]
+                ]);
+                return { X: X_new, y: o.y };
+            }
+
+            function makeMoons(n, noise) {
+                let pts = [], labels = [];
+                for (let i = 0; i < n / 2; i++) {
+                    let t = Math.PI * Math.random();
+                    pts.push([Math.cos(t) + (Math.random() - 0.5) * noise, Math.sin(t) + (Math.random() - 0.5) * noise]);
+                    labels.push(0);
+                }
+                for (let i = 0; i < n / 2; i++) {
+                    let t = Math.PI * Math.random();
+                    pts.push([1 - Math.cos(t) + (Math.random() - 0.5) * noise, 0.5 - Math.sin(t) + (Math.random() - 0.5) * noise]);
+                    labels.push(1);
+                }
+                return { X: pts, y: labels };
+            }
+
+            function makeCircles(n, noise, factor = 0.5) {
+                let pts = [], labels = [];
+                for (let i = 0; i < n / 2; i++) {
+                    let t = 2 * Math.PI * Math.random();
+                    pts.push([Math.cos(t) + (Math.random() - 0.5) * noise, Math.sin(t) + (Math.random() - 0.5) * noise]);
+                    labels.push(0);
+                }
+                for (let i = 0; i < n / 2; i++) {
+                    let t = 2 * Math.PI * Math.random();
+                    pts.push([factor * Math.cos(t) + (Math.random() - 0.5) * noise, factor * Math.sin(t) + (Math.random() - 0.5) * noise]);
+                    labels.push(1);
+                }
+                return { X: pts, y: labels };
+            }
+
+            function generateData() {
+                let res;
+                if (datasetType === 'blobs') res = makeBlobs(n_points, 0.8);
+                else if (datasetType === 'aniso') res = makeAnisotropic(n_points);
+                else if (datasetType === 'moons') res = makeMoons(n_points, 0.15);
+                else if (datasetType === 'circles') res = makeCircles(n_points, 0.1);
+                X = res.X;
+                y_true = res.y;
+            }
+
+            // --- Lógica K-Means ---
+            function initKMeans() {
+                converged = false;
+                btnStep.disabled = false;
+
+                // Elegir centroides iniciales al azar de los puntos de datos (Forgy)
+                centroids = [];
+                let indices = [];
+                while (indices.length < K) {
+                    let r = Math.floor(Math.random() * X.length);
+                    if (indices.indexOf(r) === -1) indices.push(r);
+                }
+                for (let i = 0; i < K; i++) centroids.push([...X[indices[i]]]);
+
+                assignments = Array(X.length).fill(-1);
+                currentInertia = "?";
+                valInertia.innerText = currentInertia;
+
+                plotScatter();
+            }
+
+            function computeDist(pt1, pt2) {
+                return (pt1[0] - pt2[0]) ** 2 + (pt1[1] - pt2[1]) ** 2;
+            }
+
+            function assignPoints() {
+                let newAssignments = [];
+                let tempInertia = 0;
+                for (let i = 0; i < X.length; i++) {
+                    let minD = Infinity;
+                    let best = 0;
+                    for (let c = 0; c < K; c++) {
+                        let d = computeDist(X[i], centroids[c]);
+                        if (d < minD) { minD = d; best = c; }
+                    }
+                    newAssignments.push(best);
+                    tempInertia += minD;
+                }
+
+                let changed = false;
+                for (let i = 0; i < X.length; i++) {
+                    if (assignments[i] !== newAssignments[i]) {
+                        changed = true; break;
+                    }
+                }
+
+                assignments = newAssignments;
+                currentInertia = tempInertia;
+                valInertia.innerText = currentInertia.toFixed(2);
+                return changed;
+            }
+
+            function updateCentroids() {
+                let newCentroids = Array(K).fill().map(() => [0, 0]);
+                let counts = Array(K).fill(0);
+                for (let i = 0; i < X.length; i++) {
+                    let c = assignments[i];
+                    newCentroids[c][0] += X[i][0];
+                    newCentroids[c][1] += X[i][1];
+                    counts[c]++;
+                }
+                for (let c = 0; c < K; c++) {
+                    if (counts[c] > 0) {
+                        newCentroids[c][0] /= counts[c];
+                        newCentroids[c][1] /= counts[c];
+                    } else {
+                        let rnd = Math.floor(Math.random() * X.length);
+                        newCentroids[c] = [...X[rnd]];
+                    }
+                }
+                centroids = newCentroids;
+            }
+
+            function stepKMeans() {
+                if (converged) return;
+                let changed = assignPoints();
+                if (!changed) {
+                    converged = true;
+                    btnStep.disabled = true;
+                } else {
+                    updateCentroids();
+                }
+                plotScatter();
+            }
+
+
+
+
+
+            // --- UI Updates ---
+            function changeDataset() {
+                datasetType = selDataset.value;
+                generateData();
+                initKMeans();
+            }
+
+            function changeK() {
+                K = parseInt(sliderK.value);
+                valK.innerText = K;
+                initKMeans();
+            }
+
+            // --- Plotting ---
+            function plotScatter() {
+                let traces = [];
+
+                // Si estan asignados
+                for (let c = 0; c < K; c++) {
+                    let xc = [], yc = [];
+                    for (let i = 0; i < X.length; i++) {
+                        // Si no han sido asignados todavia (paso 0), dibujarlos grieses
+                        if (assignments[i] === c) {
+                            xc.push(X[i][0]); yc.push(X[i][1]);
+                        }
+                    }
+
+                    if (xc.length > 0) {
+                        traces.push({
+                            x: xc, y: yc, mode: 'markers', type: 'scatter', name: `Cluster ${c + 1}`,
+                            marker: { size: 6, color: colors[c % colors.length], opacity: 0.6 }
+                        });
+                    }
+                }
+
+                // Puntos no asignados
+                let unx = [], uny = [];
+                for (let i = 0; i < X.length; i++) {
+                    if (assignments[i] === -1) { unx.push(X[i][0]); uny.push(X[i][1]); }
+                }
+                if (unx.length > 0) {
+                    traces.push({
+                        x: unx, y: uny, mode: 'markers', type: 'scatter', name: 'Datos',
+                        marker: { size: 6, color: '#95a5a6', opacity: 0.6 }
+                    });
+                }
+
+                // Centroides
+                let cx = [], cy = [];
+                for (let i = 0; i < K; i++) { cx.push(centroids[i][0]); cy.push(centroids[i][1]); }
+                traces.push({
+                    x: cx, y: cy, mode: 'markers', type: 'scatter', name: 'Centroides',
+                    marker: { size: 14, symbol: 'x', color: 'black', line: { width: 2, color: 'white' } }
+                });
+
+                let layout = {
+                    title: 'Espacio de Datos y Centroides',
+                    margin: { t: 40, b: 30, l: 40, r: 20 },
+                    xaxis: { zeroline: false, showgrid: false },
+                    yaxis: { zeroline: false, showgrid: false },
+                    showlegend: false
+                };
+                Plotly.react('chartScatter', traces, layout);
+            }
+
+
+
+            // Init
+            window.onload = function () {
+                generateData();
+                initKMeans();
+            }
+
+            window.onresize = function () {
+                Plotly.Plots.resize('chartScatter');
+            }
+        </script>
+</body>
+
+</html>
