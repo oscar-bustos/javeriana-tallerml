@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backpropagation Paso a Paso</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        /* --- Reuse Styles from Index/Logistic --- */
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-color: #333;
+            --node-input: #FFC107; /* Amber */
+            --node-hidden: #03A9F4; /* Light Blue */
+            --node-output: #8BC34A; /* Light Green */
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        header {
+            background: linear-gradient(135deg, #1f2739, #2c3e50);
+            color: white;
+            padding: 20px 20px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        .back-btn {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 15px;
+            border-radius: 20px;
+            transition: background 0.3s;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        .container {
+            max-width: 1300px;
+            margin: 30px auto;
+            padding: 0 20px;
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+        }
+
+        /* --- Controls Sidebar --- */
+        .sidebar {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            height: fit-content;
+        }
+
+        .step-box {
+            background: #eef2f5;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            border-left: 4px solid var(--accent-color);
+            transition: all 0.3s;
+        }
+
+        .step-title {
+            font-weight: 600;
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: var(--primary-color);
+            font-size: 1.1em;
+        }
+
+        .step-desc {
+            font-size: 0.9em;
+            line-height: 1.5;
+            margin-bottom: 0;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        .control-group input[type="range"] {
+            width: 100%;
+        }
+
+        .value-display {
+            font-family: monospace;
+            color: var(--accent-color);
+            float: right;
+            font-size: 1.1em;
+        }
+
+        .btn-next {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            font-weight: bold;
+            text-transform: uppercase;
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.1s;
+            font-size: 1em;
+        }
+
+        .btn-next:hover {
+            background-color: #2ecc71;
+        }
+
+        .btn-next:active {
+            transform: scale(0.98);
+        }
+
+        /* --- Main Content / Network --- */
+        .main-content {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Neural Network SVG visualization */
+        #network-svg {
+            width: 100%;
+            height: 500px;
+            font-family: 'Poppins', Courier, monospace;
+        }
+
+        .node text {
+            text-anchor: middle;
+            dominant-baseline: middle;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        
+        .node-label {
+            text-anchor: middle;
+            font-size: 14px;
+            fill: #7f8c8d;
+        }
+
+        .link {
+            stroke: #bdc3c7;
+            stroke-width: 3;
+            transition: stroke 0.3s, stroke-width 0.3s;
+        }
+
+        .link.active {
+            stroke: #3498db;
+            stroke-width: 5;
+        }
+
+        .link.update {
+            stroke: #e74c3c;
+            stroke-width: 5;
+        }
+
+        .weight-box {
+            transition: all 0.3s;
+        }
+
+        .weight-text {
+            text-anchor: middle;
+            dominant-baseline: middle;
+            font-size: 14px;
+            font-weight: 600;
+            fill: #ffffff;
+            transition: all 0.3s;
+        }
+        /* Panel Superior para Cálculos */
+        .calc-container {
+            width: 100%;
+            min-height: 90px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .calc-content {
+            background: rgba(255, 255, 255, 1);
+            border: 2px dashed var(--accent-color);
+            border-radius: 8px;
+            padding: 12px 30px;
+            font-size: 14px;
+            font-family: monospace;
+            box-shadow: 0px 4px 10px rgba(0,0,0,0.05);
+            display: none;
+            gap: 40px;
+            text-align: left;
+        }
+
+        .calc-content > div {
+            padding: 0 10px;
+        }
+
+        .calc-content.backprop {
+            border-color: #e74c3c;
+        }
+
+        .calc-content.visible {
+            display: flex !important;
+        }
+
+        .metrics-panel {
+            display: flex;
+            justify-content: space-between;
+            background: #f1f2f6;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .metric {
+            text-align: center;
+        }
+
+        .metric-title {
+            display: block;
+            font-size: 0.85em;
+            color: #7f8c8d;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .metric-value {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #2c3e50;
+            font-family: monospace;
+            transition: color 0.3s;
+        }
+        
+        .metric-error {
+            color: #e74c3c;
+        }
+
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            #network-svg {
+                height: 400px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <a href="../index.html" class="back-btn">← Volver</a>
+        <h1>Backpropagation Paso a Paso</h1>
+        <p>Aprende cómo ajusta los pesos una Red Neuronal de perceptrón simple</p>
+    </header>
+
+    <div class="container">
+        <!-- Sidebar Controls -->
+        <aside class="sidebar">
+            <div class="metrics-panel">
+                <div class="metric">
+                    <span class="metric-title">Época</span>
+                    <span class="metric-value" id="epoch-val">1</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-title">Error Actual</span>
+                    <span class="metric-value metric-error" id="error-val">---</span>
+                </div>
+            </div>
+
+            <div class="step-box" id="explanation-box">
+                <h3 class="step-title" id="step-title">Bienvenido</h3>
+                <p class="step-desc" id="step-desc">
+                    Iniciaremos un proceso guiado paso a paso de Backpropagation basado en tus apuntes. (Nota: La función de activación usada en la capa oculta y de salida es la <b>Identidad</b>, f(x)=x). Haz clic en el botón inferior para comenzar.
+                </p>
+            </div>
+
+            <div class="control-group">
+                <label>Tasa de Aprendizaje (a) <span id="lrVal" class="value-display">0.1</span></label>
+                <input type="range" id="lr-slider" min="0.01" max="1.0" step="0.01" value="0.1">
+            </div>
+
+            <button class="btn-next" id="btn-next" onclick="nextStep()">Iniciar Paso 1</button>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Panel Superior de Cálculos -->
+            <div class="calc-container">
+                <div id="calc-forward1" class="calc-content">
+                    <div>
+                        h₁ = i₁*w₁ + i₂*w₂<br>
+                        <span id="h1-math"></span>
+                    </div>
+                    <div>
+                        h₂ = i₁*w₃ + i₂*w₄<br>
+                        <span id="h2-math"></span>
+                    </div>
+                </div>
+
+                <div id="calc-forward2" class="calc-content">
+                    <div>
+                        out = h₁*w₅ + h₂*w₆<br>
+                        <span id="out-math"></span>
+                    </div>
+                    <div>
+                        Error = ½(out - actual)²<br>
+                        <span id="err-math"></span>
+                    </div>
+                </div>
+
+                <div id="calc-back1" class="calc-content backprop">
+                    <div>
+                        Δ = out - actual<br>
+                        <span id="delta-math"></span>
+                    </div>
+                    <div id="calcB1-math">
+                        w₅ = w₅ - a(h₁ * Δ)<br>
+                        w₆ = w₆ - a(h₂ * Δ)
+                    </div>
+                </div>
+
+                <div id="calc-back2" class="calc-content backprop">
+                    <!-- Dinámico desde JS -->
+                </div>
+            </div>
+
+            <svg id="network-svg" viewBox="0 0 800 500">
+                <!-- Links (drawn first to be behind) -->
+                <g id="linksGroup"></g>
+                <!-- Weight boxes -->
+                <g id="weightsGroup"></g>
+                <!-- Nodes (drawn last to be on top) -->
+                <g id="nodesGroup"></g>
+            </svg>
+            
+            <!-- Contenedor del Gráfico de Error -->
+            <div id="errorPlot" style="width: 100%; margin-top: 10px; border-top: 2px dashed #eee; padding-top: 5px;"></div>
+        </main>
+    </div>
+
+    <script>
+        // --- Gráfico Histórico ---
+        let epochHistory = [];
+        let errorHistory = [];
+
+        // --- 1. Variables de Estado ---
+        let state = {
+            step: 0,
+            epoch: 1,
+            lr: 0.1,
+            
+            // Valores iniciales según las imágenes
+            i1: 2.0, i2: 3.0, actual: 1.0,
+            w1: 0.11, w2: 0.21, w3: 0.12, w4: 0.08, w5: 0.14, w6: 0.15,
+            
+            // Computados
+            h1: 0, h2: 0, out: 0, error: 0, delta: 0,
+            old_w5: 0, old_w6: 0, delta_w5: 0, delta_w6: 0
+        };
+
+        // --- 2. Elementos DOM ---
+        const btnNext = document.getElementById('btn-next');
+        const stepTitle = document.getElementById('step-title');
+        const stepDesc = document.getElementById('step-desc');
+        const errorVal = document.getElementById('error-val');
+        const epochVal = document.getElementById('epoch-val');
+        const lrSlider = document.getElementById('lr-slider');
+        const lrVal = document.getElementById('lrVal');
+
+        const calcF1 = document.getElementById('calc-forward1');
+        const calcF2 = document.getElementById('calc-forward2');
+        const calcB1 = document.getElementById('calc-back1');
+        const calcB2 = document.getElementById('calc-back2');
+
+        // --- 3. Posiciones Red Neuronal (SVG) ---
+        const P = {
+            i1: { x: 150, y: 150 },
+            i2: { x: 150, y: 350 },
+            h1: { x: 400, y: 150 },
+            h2: { x: 400, y: 350 },
+            out: { x: 650, y: 250 },
+            target: { x: 750, y: 380 } 
+        };
+
+        const linksData = [
+            { id: 'l1', source: 'i1', target: 'h1', wId: 'w1' },
+            { id: 'l2', source: 'i2', target: 'h1', wId: 'w2' },
+            { id: 'l3', source: 'i1', target: 'h2', wId: 'w3' },
+            { id: 'l4', source: 'i2', target: 'h2', wId: 'w4' },
+            { id: 'l5', source: 'h1', target: 'out', wId: 'w5' },
+            { id: 'l6', source: 'h2', target: 'out', wId: 'w6' }
+        ];
+
+        function getBoxProps(id) {
+            // Posiciones arregladas para no solaparse
+            switch(id) {
+                case 'w1': return { x: 260, y: 120, color: '#4E73DF' }; // Blue
+                case 'w2': return { x: 260, y: 180, color: '#4E73DF' };
+                case 'w3': return { x: 260, y: 310, color: '#F6C23E' }; // Orange
+                case 'w4': return { x: 260, y: 370, color: '#F6C23E' };
+                case 'w5': return { x: 525, y: 180, color: '#858796' }; // Gray
+                case 'w6': return { x: 525, y: 320, color: '#858796' };
+            }
+        }
+
+        const ns = "http://www.w3.org/2000/svg";
+        const linksG = document.getElementById('linksGroup');
+        const weightsG = document.getElementById('weightsGroup');
+        const nodesG = document.getElementById('nodesGroup');
+
+        // Construir Red
+        linksData.forEach(l => {
+            const line = document.createElementNS(ns, 'line');
+            line.setAttribute('id', 'link-' + l.id);
+            line.setAttribute('x1', P[l.source].x);
+            line.setAttribute('y1', P[l.source].y);
+            line.setAttribute('x2', P[l.target].x);
+            line.setAttribute('y2', P[l.target].y);
+            line.setAttribute('class', 'link');
+            linksG.appendChild(line);
+
+            const props = getBoxProps(l.wId);
+            const r = document.createElementNS(ns, 'rect');
+            r.setAttribute('x', props.x - 25);
+            r.setAttribute('y', props.y - 14);
+            r.setAttribute('width', 50);
+            r.setAttribute('height', 28);
+            r.setAttribute('class', 'weight-box');
+            r.setAttribute('fill', props.color);
+            r.setAttribute('stroke', '#fff');
+            r.setAttribute('rx', '6');
+            weightsG.appendChild(r);
+
+            const t = document.createElementNS(ns, 'text');
+            t.setAttribute('id', 'text-' + l.wId);
+            t.setAttribute('x', props.x);
+            t.setAttribute('y', props.y + 1);
+            t.setAttribute('class', 'weight-text');
+            t.textContent = state[l.wId].toFixed(3);
+            weightsG.appendChild(t);
+        });
+
+        function addNode(id, pos, color, labelText, initialVal = "") {
+            const g = document.createElementNS(ns, 'g');
+            g.setAttribute('class', 'node');
+
+            const c = document.createElementNS(ns, 'circle');
+            c.setAttribute('cx', pos.x);
+            c.setAttribute('cy', pos.y);
+            c.setAttribute('r', 40);
+            c.setAttribute('fill', color);
+            c.setAttribute('stroke', '#fff');
+            c.setAttribute('stroke-width', '3');
+            g.appendChild(c);
+
+            const t = document.createElementNS(ns, 'text');
+            t.setAttribute('id', 'nodetext-' + id);
+            t.setAttribute('x', pos.x);
+            t.setAttribute('y', pos.y);
+            t.setAttribute('fill', '#fff');
+            t.textContent = initialVal;
+            g.appendChild(t);
+
+            const tl = document.createElementNS(ns, 'text');
+            tl.setAttribute('x', pos.x);
+            tl.setAttribute('y', pos.y - 50);
+            tl.setAttribute('class', 'node-label');
+            tl.textContent = labelText;
+            g.appendChild(tl);
+
+            nodesG.appendChild(g);
+        }
+
+        addNode('i1', P.i1, 'var(--node-input)', 'Entrada 1', state.i1);
+        addNode('i2', P.i2, 'var(--node-input)', 'Entrada 2', state.i2);
+        addNode('h1', P.h1, 'var(--node-hidden)', 'Oculta 1', '?');
+        addNode('h2', P.h2, 'var(--node-hidden)', 'Oculta 2', '?');
+        addNode('out', P.out, 'var(--node-output)', 'Salida (Pred.)', '?');
+
+        // Nodo Actual independiente
+        const tg = document.createElementNS(ns, 'g');
+        const tc = document.createElementNS(ns, 'circle');
+        tc.setAttribute('cx', P.target.x); tc.setAttribute('cy', P.target.y);
+        tc.setAttribute('r', 30); tc.setAttribute('fill', '#9b59b6');
+        tc.setAttribute('stroke', '#fff'); tc.setAttribute('stroke-width', '2');
+        tg.appendChild(tc);
+        
+        const tt = document.createElementNS(ns, 'text');
+        tt.setAttribute('x', P.target.x); tt.setAttribute('y', P.target.y + 1);
+        tt.setAttribute('class', 'weight-text'); 
+        tt.textContent = state.actual.toFixed(1);
+        tg.appendChild(tt);
+        
+        const tll = document.createElementNS(ns, 'text');
+        tll.setAttribute('x', P.target.x); tll.setAttribute('y', P.target.y - 40);
+        tll.setAttribute('class', 'node-label');
+        tll.textContent = 'Actual';
+        tg.appendChild(tll);
+        nodesG.appendChild(tg);
+
+        // --- Funciones de Utilidad ---
+        function setHighlight(ids, activeClass) {
+            document.querySelectorAll('.link').forEach(l => {
+                l.classList.remove('active', 'update');
+            });
+            ids.forEach(id => {
+                const el = document.getElementById(id);
+                if(el) el.classList.add(activeClass);
+            });
+        }
+
+        function updateVal(type, id, val) {
+            const el = document.getElementById(type + '-' + id);
+            if(el) el.textContent = val.toFixed(3);
+        }
+
+        function hideAllCalcs() {
+            calcF1.classList.remove('visible');
+            calcF2.classList.remove('visible');
+            calcB1.classList.remove('visible');
+            calcB2.classList.remove('visible');
+        }
+
+        // --- Plotly Logic ---
+        function updatePlot() {
+            let trace = {
+                x: epochHistory.slice(),
+                y: errorHistory.slice(),
+                mode: 'lines+markers',
+                line: { color: '#e74c3c', width: 3 },
+                marker: { size: 8 }
+            };
+            let layout = {
+                title: {text: 'Convergencia del Error (MSE)', font: {size: 14, color: '#34495e', family: 'Poppins'}},
+                margin: { t: 30, b: 40, l: 50, r: 20 },
+                xaxis: { title: 'Época', dtick: 1 },
+                yaxis: { title: 'Error (MSE)', rangemode: 'tozero' },
+                height: 250,
+                paper_bgcolor: 'transparent',
+                plot_bgcolor: 'transparent'
+            };
+            Plotly.react('errorPlot', [trace], layout);
+        }
+        updatePlot();
+
+        // --- 4. Lógica de Paginación ---
+        function nextStep() {
+            state.lr = parseFloat(lrSlider.value);
+            state.step++;
+
+            switch(state.step) {
+                case 1:
+                    // FWD 1
+                    state.h1 = state.i1 * state.w1 + state.i2 * state.w2;
+                    state.h2 = state.i1 * state.w3 + state.i2 * state.w4;
+                    
+                    updateVal('nodetext', 'h1', state.h1);
+                    updateVal('nodetext', 'h2', state.h2);
+                    
+                    setHighlight(['link-l1', 'link-l2', 'link-l3', 'link-l4'], 'active');
+                    
+                    hideAllCalcs();
+                    document.getElementById('h1-math').textContent = `h₁ = ${state.i1}*${state.w1.toFixed(3)} + ${state.i2}*${state.w2.toFixed(3)} = ${state.h1.toFixed(3)}`;
+                    document.getElementById('h2-math').textContent = `h₂ = ${state.i1}*${state.w3.toFixed(3)} + ${state.i2}*${state.w4.toFixed(3)} = ${state.h2.toFixed(3)}`;
+                    calcF1.classList.add('visible');
+
+                    stepTitle.textContent = "Paso 1: Forward Pass (Capa Oculta)";
+                    stepDesc.textContent = "Calculamos el valor de las neuronas de la capa oculta. Es el producto punto de las entradas con los primeros pesos.";
+                    btnNext.textContent = "Siguiente: Forward Pass (Salida)";
+                    break;
+
+                case 2:
+                    // FWD 2
+                    state.out = state.h1 * state.w5 + state.h2 * state.w6;
+                    state.error = 0.5 * Math.pow(state.out - state.actual, 2);
+                    
+                    if (epochHistory.length === 0 || epochHistory[epochHistory.length - 1] !== state.epoch) {
+                        epochHistory.push(state.epoch);
+                        errorHistory.push(state.error);
+                        updatePlot();
+                    }
+                    
+                    updateVal('nodetext', 'out', state.out);
+                    errorVal.textContent = state.error.toFixed(4);
+
+                    setHighlight(['link-l5', 'link-l6'], 'active');
+                    
+                    hideAllCalcs();
+                    document.getElementById('out-math').textContent = `out = ${state.h1.toFixed(3)}*${state.w5.toFixed(3)} + ${state.h2.toFixed(3)}*${state.w6.toFixed(3)} = ${state.out.toFixed(3)}`;
+                    document.getElementById('err-math').textContent = `E = ½(${state.out.toFixed(3)} - ${state.actual})² = ${state.error.toFixed(4)}`;
+                    calcF2.classList.add('visible');
+
+                    stepTitle.textContent = "Paso 2: Forward Pass (Salida) y Error";
+                    stepDesc.textContent = "Calculamos la predicción final y observamos el error comparándola con el valor Actual (1.0). Nuestro objetivo en Backprop será minimizar este error.";
+                    btnNext.textContent = "Siguiente: Backprop (Gradiencia)";
+                    break;
+                
+                case 3:
+                    // BACK 1
+                    state.delta = state.out - state.actual;
+                    
+                    setHighlight(['link-l5', 'link-l6'], 'update');
+
+                    hideAllCalcs();
+                    document.getElementById('delta-math').innerHTML = `Δ = ${state.out.toFixed(3)} - 1.0 = <b>${state.delta.toFixed(3)}</b>`;
+                    document.getElementById('calcB1-math').innerHTML = `
+                        w₅ = w₅ - a(h₁ * Δ)<br>
+                        w₆ = w₆ - a(h₂ * Δ)
+                    `;
+                    calcB1.classList.add('visible');
+
+                    stepTitle.textContent = "Paso 3: Backpropagation (Deltas Salida)";
+                    stepDesc.innerHTML = "Iniciamos de atrás hacia adelante. Calculamos la derivada del error (<b>Δ</b>). Usaremos la regla de la cadena para propagar este error.";
+                    btnNext.textContent = "Siguiente: Actualizar w₅ y w₆";
+                    break;
+
+                case 4:
+                    // UPDATE OUT
+                    state.old_w5 = state.w5;
+                    state.old_w6 = state.w6;
+                    
+                    state.w5 = state.w5 - state.lr * (state.h1 * state.delta);
+                    state.w6 = state.w6 - state.lr * (state.h2 * state.delta);
+
+                    updateVal('text', 'w5', state.w5);
+                    updateVal('text', 'w6', state.w6);
+
+                    document.getElementById('calcB1-math').innerHTML = `
+                        w₅ = ${state.old_w5.toFixed(3)} - ${state.lr}(${state.h1.toFixed(3)} * ${state.delta.toFixed(3)}) = <b>${state.w5.toFixed(3)}</b><br>
+                        w₆ = ${state.old_w6.toFixed(3)} - ${state.lr}(${state.h2.toFixed(3)} * ${state.delta.toFixed(3)}) = <b>${state.w6.toFixed(3)}</b>
+                    `;
+
+                    stepTitle.textContent = "Paso 4: Pesos w₅ y w₆ Actualizados";
+                    stepDesc.innerHTML = `Multiplicamos el valor de la capa anterior (h₁, h₂) por el Δ y la tasa de aprendizaje.<br>¡Hemos restado este gradiente!`;
+                    btnNext.textContent = "Siguiente: Backprop (Deltas Ocultas)";
+                    break;
+
+                case 5:
+                    // BACK 2
+                    state.delta_h1 = state.delta * state.old_w5;
+                    state.delta_h2 = state.delta * state.old_w6;
+
+                    setHighlight(['link-l1', 'link-l2', 'link-l3', 'link-l4'], 'update');
+
+                    hideAllCalcs();
+                    calcB2.innerHTML = `
+                        <div id="calcB2-deltas">
+                            Δh₁ = Δ * w₅ (ant) = ${state.delta.toFixed(3)} * ${state.old_w5.toFixed(3)} = <b>${state.delta_h1.toFixed(3)}</b><br>
+                            Δh₂ = Δ * w₆ (ant) = ${state.delta.toFixed(3)} * ${state.old_w6.toFixed(3)} = <b>${state.delta_h2.toFixed(3)}</b>
+                        </div>
+                        <div id="calcB2-math">
+                            w₁ = w₁ - a(${state.i1} * Δh₁)<br>
+                            w₂ = w₂ - a(${state.i2} * Δh₁)<br>
+                            w₃ = w₃ - a(${state.i1} * Δh₂)<br>
+                            w₄ = w₄ - a(${state.i2} * Δh₂)
+                        </div>
+                    `;
+                    calcB2.classList.add('visible');
+
+                    stepTitle.textContent = "Paso 5: Backpropagation (Deltas Ocultas)";
+                    stepDesc.innerHTML = "Propagamos el error hacia la capa oculta a través de los pesos antiguos distribuyendo la 'culpa' del error inicial.";
+                    btnNext.textContent = "Siguiente: Actualizar w₁, w₂, w₃, w₄";
+                    break;
+
+                case 6:
+                    // UPDATE IN
+                    let old_w1 = state.w1, old_w2 = state.w2, old_w3 = state.w3, old_w4 = state.w4;
+
+                    state.w1 = state.w1 - state.lr * (state.i1 * state.delta_h1);
+                    state.w2 = state.w2 - state.lr * (state.i2 * state.delta_h1);
+                    state.w3 = state.w3 - state.lr * (state.i1 * state.delta_h2);
+                    state.w4 = state.w4 - state.lr * (state.i2 * state.delta_h2);
+
+                    document.getElementById('calcB2-math').innerHTML = `
+                        w₁ = ${old_w1.toFixed(3)} - ${state.lr}(${state.i1} * ${state.delta_h1.toFixed(3)}) = <b>${state.w1.toFixed(3)}</b><br>
+                        w₂ = ${old_w2.toFixed(3)} - ${state.lr}(${state.i2} * ${state.delta_h1.toFixed(3)}) = <b>${state.w2.toFixed(3)}</b><br>
+                        w₃ = ${old_w3.toFixed(3)} - ${state.lr}(${state.i1} * ${state.delta_h2.toFixed(3)}) = <b>${state.w3.toFixed(3)}</b><br>
+                        w₄ = ${old_w4.toFixed(3)} - ${state.lr}(${state.i2} * ${state.delta_h2.toFixed(3)}) = <b>${state.w4.toFixed(3)}</b>
+                    `;
+
+                    updateVal('text', 'w1', state.w1);
+                    updateVal('text', 'w2', state.w2);
+                    updateVal('text', 'w3', state.w3);
+                    updateVal('text', 'w4', state.w4);
+
+                    stepTitle.textContent = "Paso 6: ¡Época Terminada!";
+                    stepDesc.innerHTML = "Todos los pesos han sido actualizados en la dirección óptima. Inicia la siguiente época para ver cómo todos los valores cambian y el Error disminuye progresivamente.";
+                    btnNext.textContent = "Siguiente Época";
+                    
+                    hideAllCalcs();
+                    break;
+                
+                case 7:
+                    // RESET
+                    state.epoch++;
+                    epochVal.textContent = state.epoch;
+                    
+                    document.getElementById('nodetext-h1').textContent = "?";
+                    document.getElementById('nodetext-h2').textContent = "?";
+                    document.getElementById('nodetext-out').textContent = "?";
+                    setHighlight([], '');
+                    
+                    state.step = 0; 
+                    nextStep();
+                    break;
+            }
+        }
+
+        lrSlider.addEventListener('input', (e) => {
+            lrVal.textContent = parseFloat(e.target.value).toFixed(2);
+        });
+
+    </script>
+</body>
+
+</html>
