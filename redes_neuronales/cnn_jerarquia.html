@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jerarquía de CNNs: Extracción de Características (Real)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-color: #333;
+            --conv-color: #9b59b6;
+            --pool-color: #e67e22;
+            --dense-color: #2ecc71;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            overflow-x: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #1f2739, #2c3e50);
+            color: white;
+            padding: 20px 20px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        .back-btn {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 15px;
+            border-radius: 20px;
+            transition: background 0.3s;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        /* Top Controls */
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            padding: 20px;
+            background: var(--card-bg);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            align-items: center;
+            z-index: 10;
+            position: relative;
+        }
+
+        .btn-select {
+            padding: 10px 20px;
+            border: 2px solid var(--accent-color);
+            background: white;
+            color: var(--accent-color);
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-select.active, .btn-select:hover {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        /* Architecture Layout */
+        .architecture-container {
+            display: flex;
+            overflow-x: auto;
+            padding: 40px 20px;
+            gap: 40px;
+            align-items: center;
+            min-height: 500px;
+        }
+
+        .layer {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            position: relative;
+            min-width: 150px;
+            border-top: 5px solid #ccc;
+        }
+
+        .layer.conv { border-color: var(--conv-color); }
+        .layer.pool { border-color: var(--pool-color); }
+        .layer.dense { border-color: var(--dense-color); }
+
+        .layer-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: var(--primary-color);
+            text-align: center;
+        }
+
+        .layer-subtitle {
+            font-size: 0.8em;
+            color: #7f8c8d;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .maps-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        /* Map Canvas Styling */
+        canvas {
+            background: #000;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            image-rendering: pixelated; /* Muestra los píxeles reales claramente */
+        }
+
+        canvas:hover {
+            transform: scale(1.1);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.5);
+            z-index: 2;
+            position: relative;
+        }
+
+        .map-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .map-label {
+            font-size: 0.7em;
+            margin-top: 5px;
+            color: #95a5a6;
+        }
+
+        /* Visually set size constraints but let canvas native scale up to show pixels */
+        .layer-input canvas { width: 140px; height: 140px; }
+        .layer-conv1 canvas { width: 100px; height: 100px; }
+        .layer-pool1 canvas { width: 70px; height: 70px; }
+        .layer-conv2 canvas { width: 70px; height: 70px; }
+        .layer-pool2 canvas { width: 50px; height: 50px; }
+        .layer-conv3 canvas { width: 50px; height: 50px; }
+
+        /* Arrows between layers */
+        .arrow {
+            font-size: 2em;
+            color: #bdc3c7;
+        }
+
+        /* Dense Layer / Classifier */
+        .classifier {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 200px;
+        }
+
+        .class-bar-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .class-name {
+            width: 60px;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        .bar-wrap {
+            flex-grow: 1;
+            height: 15px;
+            background: #eee;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            background: var(--dense-color);
+            width: 0%;
+            transition: width 0.5s ease-out;
+        }
+
+        .class-prob {
+            width: 40px;
+            font-size: 0.8em;
+            text-align: right;
+            font-family: monospace;
+        }
+
+        /* Inspector Panel */
+        .inspector {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(44, 62, 80, 0.95);
+            color: white;
+            padding: 20px;
+            box-sizing: border-box;
+            transform: translateY(100%);
+            transition: transform 0.3s;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.2);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 30px;
+        }
+
+        .inspector.active {
+            transform: translateY(0);
+        }
+
+        .inspector-close {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            color: white;
+            cursor: pointer;
+            font-size: 1.5em;
+        }
+
+        .inspector-img {
+            border: 2px solid white;
+            border-radius: 5px;
+            background: #000;
+            image-rendering: pixelated;
+        }
+
+        .inspector-info h3 {
+            margin-top: 0;
+            color: var(--accent-color);
+            margin-bottom: 5px;
+        }
+        
+        .inspector-info p {
+            margin: 0;
+            font-size: 0.95em;
+            line-height: 1.5;
+            max-width: 800px;
+        }
+
+        .badge-layer {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .hidden-canvas {
+            display: none;
+        }
+
+        /* Tabs Styling */
+        .tabs-header {
+            display: flex;
+            justify-content: center;
+            background: #fff;
+            border-bottom: 1px solid #ddd;
+            padding-top: 10px;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #7f8c8d;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .tab-btn:hover {
+            color: var(--primary-color);
+        }
+
+        .tab-btn.active {
+            color: var(--accent-color);
+            border-bottom: 3px solid var(--accent-color);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Architecture Table */
+        .arch-table-container {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        table.arch-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        .arch-table th, .arch-table td {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .arch-table th {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: 600;
+        }
+
+        .arch-table tr:hover {
+            background-color: #f8f9fa;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <a href="../index.html" class="back-btn">← Volver</a>
+        <h1>El Cerebro de una CNN (Motor Matemático Real)</h1>
+        <p>Representación Jerárquica calculada en vivo con Convolución, ReLU y Max Pooling</p>
+    </header>
+
+    <div class="tabs-header">
+        <button class="tab-btn active" onclick="switchTab('visual')">Visualización (Mapas de Características)</button>
+        <button class="tab-btn" onclick="switchTab('arch')">Resumen de Arquitectura</button>
+    </div>
+
+    <div id="tab-visual" class="tab-content active">
+        <div class="controls">
+            <span style="font-weight: bold; color: var(--primary-color);">Selecciona una Imagen:</span>
+            <button class="btn-select active" onclick="loadImage('face')">Rostro</button>
+            <button class="btn-select" onclick="loadImage('car')">Carro</button>
+            <button class="btn-select" onclick="loadImage('cat')">Gato</button>
+        </div>
+
+    <div class="architecture-container" id="arch-container" style="position: relative;">
+        <svg id="connections" style="position:absolute; top:0; left:0; pointer-events:none; z-index:0;"></svg>
+        
+        <!-- INPUT -->
+        <div class="layer layer-input">
+            <div class="layer-title">Input</div>
+            <div class="layer-subtitle">Imagen Original (RGB)</div>
+            <canvas id="c-input" width="140" height="140" onclick="inspect(this, 'Input', 'Imagen original capturada. Los píxeles puros (0-255) entran a la primera capa de convolución.')"></canvas>
+        </div>
+
+        <i class="fas fa-chevron-right arrow"></i>
+
+        <!-- CONV 1 -->
+        <div class="layer conv layer-conv1">
+            <div class="layer-title">Capa 1: Conv + ReLU</div>
+            <div class="layer-subtitle">Características de Bajo Nivel</div>
+            <div class="maps-grid">
+                <div class="map-item"><canvas id="c-conv1-1" width="140" height="140" onclick="inspect(this, 'Capa 1 - Bordes Verticales', 'Conv2D (Sobel X) + ReLU. Al aplicar ReLU, los valores negativos se vuelven cero (negro profundo), revelando únicamente los bordes iluminados desde la izquierda.')"></canvas><span class="map-label">Bordes Vert.</span></div>
+                <div class="map-item"><canvas id="c-conv1-2" width="140" height="140" onclick="inspect(this, 'Capa 1 - Bordes Horizontales', 'Conv2D (Sobel Y) + ReLU. Detecta transiciones intensas de arriba hacia abajo.')"></canvas><span class="map-label">Bordes Horiz.</span></div>
+                <div class="map-item"><canvas id="c-conv1-3" width="140" height="140" onclick="inspect(this, 'Capa 1 - Laplaciano', 'Filtro Laplaciano + ReLU. Detecta bordes en todas las direcciones (alta frecuencia). Es un detector de contornos estricto.')"></canvas><span class="map-label">Contornos</span></div>
+                <div class="map-item"><canvas id="c-conv1-4" width="140" height="140" onclick="inspect(this, 'Capa 1 - Bordes Opuestos', 'Sobel X Invertido + ReLU. Detecta los bordes verticales pero iluminados desde la derecha.')"></canvas><span class="map-label">Bordes Invert.</span></div>
+            </div>
+        </div>
+
+        <i class="fas fa-chevron-right arrow" style="color: var(--pool-color);"></i>
+
+        <!-- POOL 1 -->
+        <div class="layer pool layer-pool1">
+            <div class="layer-title">Capa 1: Max Pooling</div>
+            <div class="layer-subtitle">Downsampling (2x2)</div>
+            <div class="maps-grid">
+                <div class="map-item"><canvas id="c-pool1-1" width="70" height="70" onclick="inspect(this, 'Pool 1 (70x70)', 'Max Pooling con ventana 2x2. Selecciona el píxel de mayor activación de cada bloque cuadrícula. Reduce la resolución matemática a la mitad preservando las características más fuertes (brillantes).')"></canvas></div>
+                <div class="map-item"><canvas id="c-pool1-2" width="70" height="70" onclick="inspect(this, 'Pool 1 (70x70)', 'Max Pooling. Note cómo los bordes se vuelven más gruesos y robustos.')"></canvas></div>
+                <div class="map-item"><canvas id="c-pool1-3" width="70" height="70" onclick="inspect(this, 'Pool 1 (70x70)', 'Max Pooling.')"></canvas></div>
+                <div class="map-item"><canvas id="c-pool1-4" width="70" height="70" onclick="inspect(this, 'Pool 1 (70x70)', 'Max Pooling.')"></canvas></div>
+            </div>
+        </div>
+
+        <i class="fas fa-chevron-right arrow"></i>
+
+        <!-- CONV 2 -->
+        <div class="layer conv layer-conv2">
+            <div class="layer-title">Capa 2: Conv + ReLU</div>
+            <div class="layer-subtitle">Nivel Medio (Intersecciones)</div>
+            <div class="maps-grid">
+                <div class="map-item"><canvas id="c-conv2-1" width="70" height="70" onclick="inspect(this, 'Capa 2 - Esquinas Tipo A', 'Conv2D aplicada SOBRE el mapa de Bordes Verticales. Detecta cortes horizontales en las líneas verticales, iluminando efectivamente las esquinas y cruces.')"></canvas><span class="map-label">Esquinas A</span></div>
+                <div class="map-item"><canvas id="c-conv2-2" width="70" height="70" onclick="inspect(this, 'Capa 2 - Esquinas Tipo B', 'Conv2D sobre Bordes Horizontales. Se iluminan zonas de cuadrículas y texturas entrelazadas.')"></canvas><span class="map-label">Esquinas B</span></div>
+                <div class="map-item"><canvas id="c-conv2-3" width="70" height="70" onclick="inspect(this, 'Capa 2 - Textura Densa', 'Filtro de suavizado (Blur) aplicado sobre los contornos intensos. Genera \'manchas\' de alta densidad de características (blob detection inicial).')"></canvas><span class="map-label">Densidad</span></div>
+                <div class="map-item"><canvas id="c-conv2-4" width="70" height="70" onclick="inspect(this, 'Capa 2 - Alta Frecuencia', 'Filtro de realce (Sharpen) sobre bordes. Extrae las texturas más rugosas de la imagen.')"></canvas><span class="map-label">Textura Fina</span></div>
+            </div>
+        </div>
+
+        <i class="fas fa-chevron-right arrow" style="color: var(--pool-color);"></i>
+
+        <!-- POOL 2 -->
+        <div class="layer pool layer-pool2">
+            <div class="layer-title">Capa 2: Max Pooling</div>
+            <div class="layer-subtitle">Downsampling (2x2)</div>
+            <div class="maps-grid">
+                <div class="map-item"><canvas id="c-pool2-1" width="35" height="35" onclick="inspect(this, 'Pool 2 (35x35)', 'Nueva reducción. Cada píxel en esta matriz de 35x35 ahora representa un campo receptivo (Receptive Field) de aproximadamente 6x6 píxeles de la imagen original.')"></canvas></div>
+                <div class="map-item"><canvas id="c-pool2-2" width="35" height="35" onclick="inspect(this, 'Pool 2 (35x35)', 'Max Pooling.')"></canvas></div>
+                <div class="map-item"><canvas id="c-pool2-3" width="35" height="35" onclick="inspect(this, 'Pool 2 (35x35)', 'Max Pooling.')"></canvas></div>
+                <div class="map-item"><canvas id="c-pool2-4" width="35" height="35" onclick="inspect(this, 'Pool 2 (35x35)', 'Max Pooling.')"></canvas></div>
+            </div>
+        </div>
+
+        <i class="fas fa-chevron-right arrow"></i>
+
+        <!-- CONV 3 -->
+        <div class="layer conv layer-conv3">
+            <div class="layer-title">Capa 3: Conv + ReLU</div>
+            <div class="layer-subtitle">Alto Nivel (Saliencia Global)</div>
+            <div class="maps-grid">
+                <div class="map-item"><canvas id="c-conv3-1" width="35" height="35" onclick="inspect(this, 'Capa 3 - Saliencia Estructural', 'Convolución ancha (5x5 gaussiana simulada) sobre agregaciones. Agrupa las esquinas en bloques de luz. Representa partes enteras de objetos.')"></canvas><span class="map-label">Formas</span></div>
+                <div class="map-item"><canvas id="c-conv3-2" width="35" height="35" onclick="inspect(this, 'Capa 3 - Blob Detector', 'Fusión de densidades. Esta neurona detecta el centro de masa de la información visual. Es una característica de altísimo nivel.')"></canvas><span class="map-label">Blobs</span></div>
+                <div class="map-item"><canvas id="c-conv3-3" width="35" height="35" onclick="inspect(this, 'Capa 3 - Contornos de Blobs', 'Laplaciano sobre estructuras previas. Intenta aislar el objeto principal de su fondo según la densidad.')"></canvas><span class="map-label">Aislamiento</span></div>
+                <div class="map-item"><canvas id="c-conv3-4" width="35" height="35" onclick="inspect(this, 'Capa 3 - Inhibición', 'Debido a sumas negativas y ReLU, esta neurona se apaga casi por completo, lo que también es una señal fuerte para la red.')"></canvas><span class="map-label">Silenciosa</span></div>
+            </div>
+        </div>
+
+        <i class="fas fa-chevron-right arrow" style="color: var(--dense-color);"></i>
+
+        <!-- DENSE / OUTPUT -->
+        <div class="layer dense">
+            <div class="layer-title">Flatten & Dense</div>
+            <div class="layer-subtitle">Clasificador (Predicción)</div>
+            <div class="classifier">
+                <div class="class-bar-container">
+                    <span class="class-name">Rostro</span>
+                    <div class="bar-wrap"><div class="bar-fill" id="bar-face"></div></div>
+                    <span class="class-prob" id="prob-face">0%</span>
+                </div>
+                <div class="class-bar-container">
+                    <span class="class-name">Carro</span>
+                    <div class="bar-wrap"><div class="bar-fill" id="bar-car"></div></div>
+                    <span class="class-prob" id="prob-car">0%</span>
+                </div>
+                <div class="class-bar-container">
+                    <span class="class-name">Gato</span>
+                    <div class="bar-wrap"><div class="bar-fill" id="bar-cat"></div></div>
+                    <span class="class-prob" id="prob-cat">0%</span>
+                </div>
+                <div class="class-bar-container">
+                    <span class="class-name">Perro</span>
+                    <div class="bar-wrap"><div class="bar-fill" id="bar-dog" style="background:#bdc3c7;"></div></div>
+                    <span class="class-prob" id="prob-dog">0%</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    </div> <!-- End Visual Tab -->
+
+    <div id="tab-arch" class="tab-content">
+        <div class="arch-table-container">
+            <h2 style="color: var(--primary-color); margin-top:0;">Estructura del Modelo (Forward Pass)</h2>
+            <p>La siguiente tabla describe la forma matemática de los tensores a medida que fluyen por la red y los parámetros entrenables que tendría una red de este tamaño.</p>
+            <table class="arch-table">
+                <thead>
+                    <tr>
+                        <th>Capa</th>
+                        <th>Tipo de Operación</th>
+                        <th>Mapas / Filtros</th>
+                        <th>Tamaño de Salida (W x H x D)</th>
+                        <th>Parámetros Estimados</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Input</strong></td>
+                        <td>Entrada de Imagen (Escala de Grises)</td>
+                        <td>1</td>
+                        <td>140 x 140 x 1</td>
+                        <td>0</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Conv1</strong></td>
+                        <td>Conv2D (Kernel 3x3) + ReLU</td>
+                        <td>4</td>
+                        <td>140 x 140 x 4</td>
+                        <td>(3×3×1 + 1) × 4 = <strong>40</strong></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Pool1</strong></td>
+                        <td>MaxPooling2D (Ventana 2x2, Stride 2)</td>
+                        <td>4</td>
+                        <td>70 x 70 x 4</td>
+                        <td>0</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Conv2</strong></td>
+                        <td>Conv2D (Kernel 3x3) + ReLU</td>
+                        <td>4</td>
+                        <td>70 x 70 x 4</td>
+                        <td>(3×3×4 + 1) × 4 = <strong>148</strong></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Pool2</strong></td>
+                        <td>MaxPooling2D (Ventana 2x2, Stride 2)</td>
+                        <td>4</td>
+                        <td>35 x 35 x 4</td>
+                        <td>0</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Conv3</strong></td>
+                        <td>Conv2D (Kernel 5x5) + ReLU</td>
+                        <td>4</td>
+                        <td>35 x 35 x 4</td>
+                        <td>(5×5×4 + 1) × 4 = <strong>404</strong></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Flatten</strong></td>
+                        <td>Aplanado de Tensores</td>
+                        <td>-</td>
+                        <td>4900 (35×35×4)</td>
+                        <td>0</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Dense</strong></td>
+                        <td>Capa Totalmente Conectada (Clasificador)</td>
+                        <td>4</td>
+                        <td>4 (Rostro, Carro, Gato, Perro)</td>
+                        <td>(4900 + 1) × 4 = <strong>19,604</strong></td>
+                    </tr>
+                    <tr style="background-color: #ecf0f1; font-weight: bold;">
+                        <td colspan="4" style="text-align: right;">Total de Parámetros:</td>
+                        <td>~ 20,196</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Inspector Panel -->
+    <div class="inspector" id="inspector">
+        <i class="fas fa-times inspector-close" onclick="closeInspector()"></i>
+        <canvas id="inspector-canvas" class="inspector-img" width="150" height="150"></canvas>
+        <div class="inspector-info">
+            <span class="badge-layer" id="ins-badge" style="background: var(--conv-color);">Capa Conv</span>
+            <h3 id="ins-title">Título del Mapa</h3>
+            <p id="ins-desc">Descripción matemática.</p>
+        </div>
+    </div>
+
+    <script>
+        // --- Base Images & Fake Dense Weights ---
+        const imageDB = {
+            'face': {
+                url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=140&q=80',
+                c3_activations: { face: 0.95, car: 0.01, cat: 0.03, dog: 0.01 }
+            },
+            'car': {
+                url: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=140&q=80',
+                c3_activations: { face: 0.01, car: 0.98, cat: 0.00, dog: 0.01 }
+            },
+            'cat': {
+                url: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=140&q=80',
+                c3_activations: { face: 0.05, car: 0.00, cat: 0.88, dog: 0.07 }
+            }
+        };
+
+        let currentCategory = 'face';
+
+        // --- MATH ENGINE (Deep Learning Simulation in Vanilla JS) ---
+
+        // 1. Conv2D (Zero padding implicit by ignoring 1px borders)
+        function applyConv2D(input, w, h, kernel, kernelSize=3) {
+            let output = new Float32Array(w * h);
+            const offset = Math.floor(kernelSize / 2);
+            
+            for (let y = offset; y < h - offset; y++) {
+                for (let x = offset; x < w - offset; x++) {
+                    let sum = 0;
+                    for (let ky = -offset; ky <= offset; ky++) {
+                        for (let kx = -offset; kx <= offset; kx++) {
+                            const val = input[(y + ky) * w + (x + kx)];
+                            const k = kernel[(ky + offset) * kernelSize + (kx + offset)];
+                            sum += val * k;
+                        }
+                    }
+                    output[y * w + x] = sum; // Raw output (can be negative)
+                }
+            }
+            return output;
+        }
+
+        // 2. ReLU Activation (max(0, x))
+        function applyReLU(input) {
+            let output = new Float32Array(input.length);
+            for(let i=0; i<input.length; i++) {
+                output[i] = Math.max(0, input[i]);
+            }
+            return output;
+        }
+
+        // 3. Max Pooling (2x2 stride 2)
+        function applyMaxPool2x2(input, w, h) {
+            const outW = Math.floor(w / 2);
+            const outH = Math.floor(h / 2);
+            let output = new Float32Array(outW * outH);
+
+            for(let y=0; y<outH; y++) {
+                for(let x=0; x<outW; x++) {
+                    const inY = y * 2;
+                    const inX = x * 2;
+                    
+                    const v1 = input[inY * w + inX];
+                    const v2 = input[inY * w + (inX + 1)];
+                    const v3 = input[(inY + 1) * w + inX];
+                    const v4 = input[(inY + 1) * w + (inX + 1)];
+                    
+                    output[y * outW + x] = Math.max(v1, v2, v3, v4);
+                }
+            }
+            return output;
+        }
+
+        // 4. Utility: Sum two arrays (Feature fusion)
+        function addArrays(a1, a2) {
+            let out = new Float32Array(a1.length);
+            for(let i=0; i<a1.length; i++) out[i] = a1[i] + a2[i];
+            return out;
+        }
+
+        // 5. Normalizer for visualization [0-255] and Colormap
+        function renderMap(canvasId, dataArray, w, h) {
+            const c = document.getElementById(canvasId);
+            const ctx = c.getContext('2d');
+            const imgData = ctx.createImageData(w, h);
+            
+            // Find max to normalize
+            let maxVal = 0.001; // Avoid div by zero
+            for(let i=0; i<dataArray.length; i++) if(dataArray[i] > maxVal) maxVal = dataArray[i];
+
+            for (let i = 0; i < dataArray.length; i++) {
+                // Normalize 0-255
+                let val = (dataArray[i] / maxVal) * 255;
+                val = Math.min(255, Math.max(0, val));
+                
+                const offset = i * 4;
+                
+                // Color map: Magma/Inferno simulation (Black -> Purple -> Orange -> Yellow/White)
+                if (val < 10) {
+                    imgData.data[offset] = 0; imgData.data[offset+1] = 0; imgData.data[offset+2] = 0; // Black
+                } else if (val < 100) {
+                    imgData.data[offset] = val; // R
+                    imgData.data[offset+1] = 0; // G
+                    imgData.data[offset+2] = val * 0.8; // B (Purple)
+                } else if (val < 180) {
+                    imgData.data[offset] = val; 
+                    imgData.data[offset+1] = (val - 100) * 1.5; // G (Orange)
+                    imgData.data[offset+2] = 50; 
+                } else {
+                    imgData.data[offset] = 255; 
+                    imgData.data[offset+1] = 255; 
+                    imgData.data[offset+2] = (val - 180) * 3; // Yellow to White
+                }
+                imgData.data[offset+3] = 255; // Alpha
+            }
+            ctx.putImageData(imgData, 0, 0);
+        }
+
+        // --- Kernels ---
+        const K = {
+            sobelX: [-1, 0, 1, -2, 0, 2, -1, 0, 1],
+            sobelY: [-1, -2, -1, 0, 0, 0, 1, 2, 1],
+            sobelXNeg: [1, 0, -1, 2, 0, -2, 1, 0, -1],
+            laplacian: [0, 1, 0, 1, -4, 1, 0, 1, 0],
+            blur3x3: [0.11, 0.11, 0.11, 0.11, 0.12, 0.11, 0.11, 0.11, 0.11],
+            sharpen: [0, -1, 0, -1, 5, -1, 0, -1, 0],
+            gaussian5x5: [
+                1/256,  4/256,  6/256,  4/256, 1/256,
+                4/256, 16/256, 24/256, 16/256, 4/256,
+                6/256, 24/256, 36/256, 24/256, 6/256,
+                4/256, 16/256, 24/256, 16/256, 4/256,
+                1/256,  4/256,  6/256,  4/256, 1/256
+            ]
+        };
+
+
+        // --- UI Flow ---
+        function loadImage(category) {
+            currentCategory = category;
+            document.querySelectorAll('.btn-select').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+
+            const img = new Image();
+            img.crossOrigin = "Anonymous";
+            img.onload = () => {
+                processRealPipeline(img);
+                setTimeout(drawConnections, 50); // Draw lines after rendering
+            };
+            img.src = imageDB[category].url;
+        }
+
+        function processRealPipeline(img) {
+            // INPUT
+            const cInput = document.getElementById('c-input');
+            const ctxInput = cInput.getContext('2d', { willReadFrequently: true });
+            ctxInput.drawImage(img, 0, 0, 140, 140);
+
+            const inputData = ctxInput.getImageData(0, 0, 140, 140);
+            const grayData = new Float32Array(140 * 140);
+            for(let i=0; i<140*140; i++) {
+                grayData[i] = 0.299*inputData.data[i*4] + 0.587*inputData.data[i*4+1] + 0.114*inputData.data[i*4+2];
+            }
+
+            // LAYER 1: Conv -> ReLU
+            let c1_1 = applyReLU(applyConv2D(grayData, 140, 140, K.sobelX));
+            let c1_2 = applyReLU(applyConv2D(grayData, 140, 140, K.sobelY));
+            let c1_3 = applyReLU(applyConv2D(grayData, 140, 140, K.laplacian));
+            let c1_4 = applyReLU(applyConv2D(grayData, 140, 140, K.sobelXNeg));
+            
+            renderMap('c-conv1-1', c1_1, 140, 140);
+            renderMap('c-conv1-2', c1_2, 140, 140);
+            renderMap('c-conv1-3', c1_3, 140, 140);
+            renderMap('c-conv1-4', c1_4, 140, 140);
+
+            // LAYER 1: Max Pooling
+            let p1_1 = applyMaxPool2x2(c1_1, 140, 140);
+            let p1_2 = applyMaxPool2x2(c1_2, 140, 140);
+            let p1_3 = applyMaxPool2x2(c1_3, 140, 140);
+            let p1_4 = applyMaxPool2x2(c1_4, 140, 140);
+
+            renderMap('c-pool1-1', p1_1, 70, 70);
+            renderMap('c-pool1-2', p1_2, 70, 70);
+            renderMap('c-pool1-3', p1_3, 70, 70);
+            renderMap('c-pool1-4', p1_4, 70, 70);
+
+            // LAYER 2: Conv -> ReLU (over pooled features)
+            // c2_1: Apply Y-edge detector to X-edges (Finds Corners)
+            let c2_1 = applyReLU(applyConv2D(p1_1, 70, 70, K.sobelY));
+            // c2_2: Apply X-edge detector to Y-edges
+            let c2_2 = applyReLU(applyConv2D(p1_2, 70, 70, K.sobelX));
+            // c2_3: Blur the laplacian to find dense texture areas
+            let c2_3 = applyReLU(applyConv2D(p1_3, 70, 70, K.blur3x3));
+            // c2_4: Sharpen over negative X-edges
+            let c2_4 = applyReLU(applyConv2D(p1_4, 70, 70, K.sharpen));
+
+            renderMap('c-conv2-1', c2_1, 70, 70);
+            renderMap('c-conv2-2', c2_2, 70, 70);
+            renderMap('c-conv2-3', c2_3, 70, 70);
+            renderMap('c-conv2-4', c2_4, 70, 70);
+
+            // LAYER 2: Max Pooling
+            let p2_1 = applyMaxPool2x2(c2_1, 70, 70);
+            let p2_2 = applyMaxPool2x2(c2_2, 70, 70);
+            let p2_3 = applyMaxPool2x2(c2_3, 70, 70);
+            let p2_4 = applyMaxPool2x2(c2_4, 70, 70);
+
+            renderMap('c-pool2-1', p2_1, 35, 35);
+            renderMap('c-pool2-2', p2_2, 35, 35);
+            renderMap('c-pool2-3', p2_3, 35, 35);
+            renderMap('c-pool2-4', p2_4, 35, 35);
+
+            // LAYER 3: Conv -> ReLU (High Level Saliency via large kernels)
+            // Combine features
+            let sum_corners = addArrays(p2_1, p2_2);
+            let c3_1 = applyReLU(applyConv2D(sum_corners, 35, 35, K.gaussian5x5, 5));
+            let c3_2 = applyReLU(applyConv2D(p2_3, 35, 35, K.gaussian5x5, 5));
+            let c3_3 = applyReLU(applyConv2D(addArrays(c3_1, c3_2), 35, 35, K.laplacian));
+            // Inhibited layer (usually mostly black due to heavy subtraction in kernels, simulated by negative logic)
+            let c3_4 = applyReLU(applyConv2D(sum_corners, 35, 35, K.sobelXNeg)); // Usually weak activation
+
+            renderMap('c-conv3-1', c3_1, 35, 35);
+            renderMap('c-conv3-2', c3_2, 35, 35);
+            renderMap('c-conv3-3', c3_3, 35, 35);
+            renderMap('c-conv3-4', c3_4, 35, 35);
+
+            // DENSE CLASSIFIER (Simulated values for final step)
+            const act = imageDB[currentCategory].c3_activations;
+            updateBars(act);
+        }
+
+        function updateBars(act) {
+            const map = { 'face': act.face, 'car': act.car, 'cat': act.cat, 'dog': act.dog };
+            for(let key in map) {
+                const prob = Math.round(map[key] * 100);
+                document.getElementById('bar-' + key).style.width = prob + '%';
+                document.getElementById('prob-' + key).textContent = prob + '%';
+            }
+        }
+
+        // --- Inspector Logic ---
+        function inspect(canvasElement, title, desc) {
+            const inspector = document.getElementById('inspector');
+            const insCanvas = document.getElementById('inspector-canvas');
+            const ctx = insCanvas.getContext('2d');
+            
+            ctx.imageSmoothingEnabled = false; // Show hard pixels
+            ctx.clearRect(0, 0, insCanvas.width, insCanvas.height);
+            ctx.drawImage(canvasElement, 0, 0, insCanvas.width, insCanvas.height);
+
+            document.getElementById('ins-title').textContent = title;
+            document.getElementById('ins-desc').textContent = desc;
+
+            const badge = document.getElementById('ins-badge');
+            if (title.includes('Pool')) {
+                badge.style.background = 'var(--pool-color)';
+                badge.textContent = 'Capa Pooling';
+            } else if (title.includes('Conv') || title.includes('Capa')) {
+                badge.style.background = 'var(--conv-color)';
+                badge.textContent = 'Capa Convolucional';
+            } else {
+                badge.style.background = 'var(--primary-color)';
+                badge.textContent = 'Input';
+            }
+
+            inspector.classList.add('active');
+        }
+
+        function closeInspector() {
+            document.getElementById('inspector').classList.remove('active');
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            if(tabId === 'visual') {
+                document.getElementById('tab-visual').classList.add('active');
+                document.querySelectorAll('.tab-btn')[0].classList.add('active');
+                setTimeout(drawConnections, 50); // Redraw lines because container was display:none
+            } else {
+                document.getElementById('tab-arch').classList.add('active');
+                document.querySelectorAll('.tab-btn')[1].classList.add('active');
+                closeInspector();
+            }
+        }
+
+        // --- Visual Connections (Lines) ---
+        function drawConnections() {
+            const container = document.getElementById('arch-container');
+            const svg = document.getElementById('connections');
+            
+            // Match SVG size to the scrollable container's full dimensions
+            svg.style.width = container.scrollWidth + 'px';
+            svg.style.height = container.scrollHeight + 'px';
+            
+            // Clear previous lines
+            svg.innerHTML = '';
+
+            const containerRect = container.getBoundingClientRect();
+
+            function getCenterLeft(el) {
+                const rect = el.getBoundingClientRect();
+                // scrollLeft and scrollTop adjustment since absolute is relative to the container's top/left (0,0 of scroll content)
+                return {
+                    x: rect.left - containerRect.left + container.scrollLeft,
+                    y: rect.top + (rect.height / 2) - containerRect.top + container.scrollTop
+                };
+            }
+
+            function getCenterRight(el) {
+                const rect = el.getBoundingClientRect();
+                return {
+                    x: rect.right - containerRect.left + container.scrollLeft,
+                    y: rect.top + (rect.height / 2) - containerRect.top + container.scrollTop
+                };
+            }
+
+            function createLine(el1, el2, color, opacity=0.3) {
+                const p1 = getCenterRight(el1);
+                const p2 = getCenterLeft(el2);
+                
+                // Control points for a smooth cubic bezier curve
+                const dx = Math.abs(p2.x - p1.x);
+                const cp1x = p1.x + dx * 0.5;
+                const cp1y = p1.y;
+                const cp2x = p2.x - dx * 0.5;
+                const cp2y = p2.y;
+
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', `M ${p1.x} ${p1.y} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`);
+                path.setAttribute('stroke', color);
+                path.setAttribute('stroke-width', '1.5');
+                path.setAttribute('fill', 'none');
+                path.setAttribute('stroke-opacity', opacity);
+                
+                svg.appendChild(path);
+            }
+
+            // Gather elements
+            const input = document.getElementById('c-input');
+            const conv1 = [1,2,3,4].map(i => document.getElementById('c-conv1-' + i));
+            const pool1 = [1,2,3,4].map(i => document.getElementById('c-pool1-' + i));
+            const conv2 = [1,2,3,4].map(i => document.getElementById('c-conv2-' + i));
+            const pool2 = [1,2,3,4].map(i => document.getElementById('c-pool2-' + i));
+            const conv3 = [1,2,3,4].map(i => document.getElementById('c-conv3-' + i));
+            const classifier = document.querySelector('.classifier');
+
+            // Draw Input -> Conv1 (1 to All)
+            conv1.forEach(c => createLine(input, c, '#9b59b6', 0.4));
+
+            // Draw Conv1 -> Pool1 (1 to 1)
+            for(let i=0; i<4; i++) createLine(conv1[i], pool1[i], '#e67e22', 0.6);
+
+            // Draw Pool1 -> Conv2 (All to All)
+            pool1.forEach(p => {
+                conv2.forEach(c => createLine(p, c, '#9b59b6', 0.15));
+            });
+
+            // Draw Conv2 -> Pool2 (1 to 1)
+            for(let i=0; i<4; i++) createLine(conv2[i], pool2[i], '#e67e22', 0.6);
+
+            // Draw Pool2 -> Conv3 (All to All)
+            pool2.forEach(p => {
+                conv3.forEach(c => createLine(p, c, '#9b59b6', 0.15));
+            });
+
+            // Draw Conv3 -> Classifier (All to 1)
+            conv3.forEach(c => createLine(c, classifier, '#2ecc71', 0.4));
+        }
+
+        // Initialize
+        window.onload = () => {
+            document.querySelector('.btn-select').click();
+            window.addEventListener('resize', drawConnections);
+        };
+
+    </script>
+</body>
+
+</html>
