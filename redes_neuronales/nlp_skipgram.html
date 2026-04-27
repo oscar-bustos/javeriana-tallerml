@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Explorador Skip-Gram (Fútbol) y Extracción de Embeddings</title>
+    <style>
+        :root {
+            --color-target: #2563eb; 
+            --color-context: #93c5fd; 
+            --color-border: #e5e7eb;
+            --color-highlight: #f59e0b;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8fafc;
+            color: #334155;
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 20px;
+            position: relative;
+        }
+
+        .back-link {
+            position: absolute;
+            top: -20px;
+            left: 20px;
+            color: #334155;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .back-link:hover {
+            color: var(--color-target);
+        }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-top: 30px;
+        }
+
+        h2 { margin-top: 0; color: #0f172a; }
+        h3 { color: #1e293b; margin-bottom: 10px; }
+
+        /* Controles (Slider) */
+        .controls {
+            margin-bottom: 30px;
+            padding: 15px;
+            background: #f1f5f9;
+            border-radius: 8px;
+        }
+
+        .controls label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        input[type="range"] { width: 100%; max-width: 300px; }
+
+        /* Frase interactiva */
+        .phrase-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 2px dashed var(--color-border);
+            border-radius: 8px;
+        }
+
+        .word {
+            padding: 10px 15px;
+            background: white;
+            border: 2px solid var(--color-border);
+            border-radius: 6px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .word:hover { border-color: #cbd5e1; transform: translateY(-2px); }
+
+        .word.target {
+            background-color: var(--color-target);
+            color: white;
+            border-color: var(--color-target);
+            font-weight: bold;
+            transform: scale(1.05);
+        }
+
+        .word.context {
+            background-color: var(--color-context);
+            border-color: var(--color-context);
+            color: #0f172a;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+        }
+
+        /* Resultados (Pares) */
+        .results {
+            background: #1e293b;
+            color: #f8fafc;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        .results h3 { color: #cbd5e1; font-family: sans-serif; }
+        ul { list-style-type: none; padding: 0; margin: 0; }
+        li { padding: 8px 0; border-bottom: 1px solid #334155; }
+        li:last-child { border-bottom: none; }
+        .target-text { color: #60a5fa; font-weight: bold; }
+        .context-text { color: #38bdf8; }
+
+        /* --- VISUALIZACIÓN DE LA RED NEURONAL --- */
+        .nn-viz {
+            background: #f8fafc;
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .architecture {
+            display: flex;
+            justify-content: space-between;
+            align-items: stretch;
+            gap: 15px;
+            position: relative;
+        }
+
+        .layer {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            align-items: center;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            flex: 1;
+        }
+
+        .layer h4 {
+            font-size: 0.8rem;
+            text-align: center;
+            margin: 0 0 10px 0;
+            color: #64748b;
+        }
+
+        .vector-cell {
+            width: 100%;
+            height: 20px;
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            border-radius: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.65rem;
+            padding: 0 5px;
+            box-sizing: border-box;
+            color: #94a3b8;
+        }
+
+        .vector-cell span.lbl {
+            width: 40px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .vector-cell span.val {
+            font-family: monospace;
+            font-weight: bold;
+        }
+
+        /* Matriz W1 (Lookup Table) */
+        .matrix-w1 {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            width: 100%;
+        }
+
+        .matrix-row {
+            display: flex;
+            width: 100%;
+            height: 20px;
+            gap: 2px;
+            transition: all 0.3s ease;
+        }
+
+        .matrix-cell {
+            flex: 1;
+            background: #e2e8f0;
+            border-radius: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.6rem;
+            color: transparent; /* Ocultar los números por defecto para no saturar */
+        }
+
+        .matrix-row:hover .matrix-cell {
+            color: #475569;
+        }
+
+        /* Estados Activos (Iluminación) */
+        .cell-active {
+            background-color: var(--color-target) !important;
+            color: white !important;
+            border-color: #1d4ed8 !important;
+            font-weight: bold;
+            box-shadow: 0 0 8px rgba(37, 99, 235, 0.4);
+        }
+
+        .row-active {
+            transform: scale(1.05);
+            z-index: 10;
+        }
+
+        .row-active .matrix-cell {
+            background-color: var(--color-highlight);
+            color: #78350f;
+            font-weight: bold;
+            box-shadow: 0 0 5px rgba(245, 158, 11, 0.5);
+        }
+
+        .cell-context {
+            background-color: var(--color-context) !important;
+            color: #0f172a !important;
+            border-color: #38bdf8 !important;
+            font-weight: bold;
+        }
+
+        /* Embedding Extracted */
+        .extracted-embedding {
+            display: flex;
+            gap: 2px;
+            width: 100%;
+            height: 40px;
+            align-items: center;
+            justify-content: center;
+            background: #fef3c7;
+            border: 2px dashed var(--color-highlight);
+            border-radius: 4px;
+            padding: 5px;
+        }
+
+        .extracted-cell {
+            flex: 1;
+            height: 100%;
+            background: var(--color-highlight);
+            border-radius: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: bold;
+            color: #78350f;
+        }
+
+        .explanation {
+            background: #e0f2fe;
+            border-left: 4px solid var(--color-target);
+            padding: 10px 15px;
+            font-size: 0.9rem;
+            border-radius: 0 8px 8px 0;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+
+    <a href="../index.html" class="back-link">
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+        </svg>
+        Volver al Menú
+    </a>
+
+    <div class="card">
+        <h2>Visualizador Skip-Gram y Extracción de Embeddings</h2>
+        <p>Haz clic en cualquier palabra para convertirla en la "Palabra Objetivo" (Target). Observa cómo la red neuronal usa un vector One-Hot para <strong>extraer exactamente una fila</strong> de la Matriz W1, la cual se convierte en el Embedding de la palabra.</p>
+
+        <div class="controls">
+            <label for="windowSize">Tamaño de la ventana (Contexto): <span id="sizeValue">2</span></label>
+            <input type="range" id="windowSize" min="1" max="3" value="2">
+        </div>
+
+        <div class="phrase-container" id="phraseContainer"></div>
+
+        <div class="grid-container">
+            <div class="results">
+                <h3>Pares de Entrenamiento (X, Y)</h3>
+                <p style="font-size: 0.8rem; color: #94a3b8; margin-top:-5px; margin-bottom: 10px;">
+                    Objetivo -> Contexto
+                </p>
+                <ul id="pairsList"></ul>
+            </div>
+
+            <div class="nn-viz">
+                <div class="explanation" id="explanationText">
+                    <strong>Paso 1:</strong> La palabra "balón" entra como un vector One-Hot (todo ceros, un '1' en su índice). <br>
+                    Al multiplicar este vector por la Matriz W1, matemáticamente <strong>se extrae la fila correspondiente</strong>. Esa fila es el Word Embedding.
+                </div>
+                
+                <div class="architecture">
+                    <!-- INPUT LAYER -->
+                    <div class="layer" id="layerInput">
+                        <h4>Entrada<br>(One-Hot)</h4>
+                        <!-- Se llena con JS -->
+                    </div>
+
+                    <!-- WEIGHT MATRIX W1 -->
+                    <div class="layer" style="flex: 1.5;">
+                        <h4>Matriz W1<br>(Vocab x Emb)</h4>
+                        <div class="matrix-w1" id="matrixW1">
+                            <!-- Se llena con JS -->
+                        </div>
+                    </div>
+
+                    <!-- HIDDEN LAYER (EMBEDDING) -->
+                    <div class="layer">
+                        <h4>Capa Oculta<br>(El Embedding)</h4>
+                        <div style="font-size: 0.7rem; color:#64748b; margin-bottom: 5px; text-align: center;">Fila Extraída de W1:</div>
+                        <div class="extracted-embedding" id="extractedEmbedding">
+                            <!-- Se llena con JS -->
+                        </div>
+                        <p style="font-size: 0.7rem; text-align:center; color: #64748b; margin-top:10px;">Esta fila de números es la representación densa de la palabra objetivo.</p>
+                    </div>
+
+                    <!-- OUTPUT LAYER -->
+                    <div class="layer" id="layerOutput">
+                        <h4>Salida Softmax<br>(Predicción)</h4>
+                        <!-- Se llena con JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 1. Configuración inicial
+        const rawSentence = "El rápido delantero chuta el balón hacia la portería rival";
+        // Convertimos a minúsculas para un vocabulario único real, pero mantenemos el visual original
+        const sentenceTokens = rawSentence.split(" ");
+        // Crear vocabulario único conservando el orden de aparición (para visualización)
+        const vocab = [...new Set(sentenceTokens.map(w => w.toLowerCase()))];
+        const EMBED_DIM = 4; // Dimensiones simuladas del embedding
+
+        // Generar una Matriz W1 ficticia pero constante (Vocab Size x Embed Dim)
+        const W1 = vocab.map(() => 
+            Array.from({length: EMBED_DIM}, () => (Math.random() * 2 - 1).toFixed(2))
+        );
+
+        // Variables de estado
+        let windowSize = 2;
+        let targetIndex = 5; // Empezamos con la palabra "balón" (índice 5 de la frase)
+
+        // Referencias al DOM
+        const container = document.getElementById('phraseContainer');
+        const sizeInput = document.getElementById('windowSize');
+        const sizeValue = document.getElementById('sizeValue');
+        const pairsList = document.getElementById('pairsList');
+        const layerInput = document.getElementById('layerInput');
+        const matrixW1 = document.getElementById('matrixW1');
+        const extractedEmbedding = document.getElementById('extractedEmbedding');
+        const layerOutput = document.getElementById('layerOutput');
+        const explanationText = document.getElementById('explanationText');
+
+        // Construir estructuras estáticas de la red
+        function buildNetworkStructure() {
+            // Limpiar
+            layerInput.innerHTML = '<h4>Entrada<br>(One-Hot)</h4>';
+            matrixW1.innerHTML = '';
+            layerOutput.innerHTML = '<h4>Salida Softmax<br>(Predecir Contexto)</h4>';
+
+            vocab.forEach((word, vIndex) => {
+                // Construir columna One-Hot
+                const inCell = document.createElement('div');
+                inCell.className = `vector-cell in-cell-${vIndex}`;
+                inCell.innerHTML = `<span class="lbl">${word}</span><span class="val">0</span>`;
+                layerInput.appendChild(inCell);
+
+                // Construir fila de W1
+                const w1Row = document.createElement('div');
+                w1Row.className = `matrix-row w1-row-${vIndex}`;
+                
+                W1[vIndex].forEach(weight => {
+                    const cell = document.createElement('div');
+                    cell.className = 'matrix-cell';
+                    cell.textContent = weight;
+                    w1Row.appendChild(cell);
+                });
+                matrixW1.appendChild(w1Row);
+
+                // Construir columna de salida
+                const outCell = document.createElement('div');
+                outCell.className = `vector-cell out-cell-${vIndex}`;
+                outCell.innerHTML = `<span class="lbl">${word}</span><span class="val">0.00</span>`;
+                layerOutput.appendChild(outCell);
+            });
+        }
+
+        // 2. Función principal que dibuja la interfaz y actualiza el estado
+        function render() {
+            // Limpiamos la frase y los pares
+            container.innerHTML = '';
+            pairsList.innerHTML = '';
+            
+            // Calculamos los límites del contexto
+            const start = Math.max(0, targetIndex - windowSize);
+            const end = Math.min(sentenceTokens.length - 1, targetIndex + windowSize);
+
+            // Obtener el string de la palabra objetivo en minúsculas (para buscar en vocabulario)
+            const targetWordStr = sentenceTokens[targetIndex].toLowerCase();
+            const targetVocabIndex = vocab.indexOf(targetWordStr);
+
+            // Rastrear qué índices del vocabulario son el contexto
+            const contextVocabIndices = [];
+
+            // Iteramos sobre cada palabra de la frase visual
+            sentenceTokens.forEach((word, index) => {
+                const wordElement = document.createElement('div');
+                wordElement.textContent = word;
+                wordElement.className = 'word';
+                
+                if (index === targetIndex) {
+                    wordElement.classList.add('target');
+                } else if (index >= start && index <= end) {
+                    wordElement.classList.add('context');
+                    
+                    const li = document.createElement('li');
+                    li.innerHTML = `(<span class="target-text">"${sentenceTokens[targetIndex]}"</span>, <span class="context-text">"${word}"</span>)`;
+                    pairsList.appendChild(li);
+
+                    contextVocabIndices.push(vocab.indexOf(word.toLowerCase()));
+                }
+                
+                wordElement.onclick = () => {
+                    targetIndex = index;
+                    render();
+                };
+                
+                container.appendChild(wordElement);
+            });
+
+            if (pairsList.children.length === 0) {
+                 pairsList.innerHTML = '<li>No hay pares generados.</li>';
+            }
+
+            // --- ACTUALIZAR VISUALIZACIÓN DE LA RED ---
+            
+            // 1. Resetear todos los estilos de la red
+            for (let i = 0; i < vocab.length; i++) {
+                const inCell = document.querySelector(`.in-cell-${i}`);
+                const w1Row = document.querySelector(`.w1-row-${i}`);
+                const outCell = document.querySelector(`.out-cell-${i}`);
+                
+                inCell.classList.remove('cell-active');
+                inCell.querySelector('.val').textContent = '0';
+                
+                w1Row.classList.remove('row-active');
+                
+                outCell.classList.remove('cell-context');
+                outCell.querySelector('.val').textContent = (Math.random() * 0.05).toFixed(2); // Ruido bajo
+            }
+
+            // 2. Activar One-Hot para el Target
+            const activeInCell = document.querySelector(`.in-cell-${targetVocabIndex}`);
+            if (activeInCell) {
+                activeInCell.classList.add('cell-active');
+                activeInCell.querySelector('.val').textContent = '1';
+            }
+
+            // 3. Activar y extraer la fila de W1 (El Embedding)
+            const activeRow = document.querySelector(`.w1-row-${targetVocabIndex}`);
+            if (activeRow) {
+                activeRow.classList.add('row-active');
+            }
+
+            extractedEmbedding.innerHTML = '';
+            W1[targetVocabIndex].forEach(weight => {
+                const eCell = document.createElement('div');
+                eCell.className = 'extracted-cell';
+                eCell.textContent = weight;
+                extractedEmbedding.appendChild(eCell);
+            });
+
+            // 4. Simular Softmax encendiendo las palabras de contexto
+            contextVocabIndices.forEach(cIdx => {
+                const activeOutCell = document.querySelector(`.out-cell-${cIdx}`);
+                if (activeOutCell) {
+                    activeOutCell.classList.add('cell-context');
+                    // Simular alta probabilidad
+                    activeOutCell.querySelector('.val').textContent = (Math.random() * 0.3 + 0.4).toFixed(2);
+                }
+            });
+
+            // 5. Actualizar explicación textual
+            explanationText.innerHTML = `<strong>El "Truco" Lineal:</strong> Como la entrada es un vector de ceros con un único <code>1</code> en la posición de <strong>"${targetWordStr}"</strong>, al multiplicarlo por la matriz de pesos, matemáticamente se extrae la fila correspondiente. Esa fila de ${EMBED_DIM} números <strong>¡Es tu Word Embedding!</strong>`;
+        }
+
+        // 3. Evento para cuando el usuario mueve el deslizador
+        sizeInput.addEventListener('input', (e) => {
+            windowSize = parseInt(e.target.value);
+            sizeValue.textContent = windowSize;
+            render();
+        });
+
+        // 4. Renderizado inicial
+        buildNetworkStructure();
+        render();
+    </script>
+</body>
+</html>

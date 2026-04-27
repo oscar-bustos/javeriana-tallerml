@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Embeddings Reales Precalculados - Fútbol</title>
+    <!-- Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        :root {
+            --color-target: #2563eb; 
+            --color-border: #e5e7eb;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8fafc;
+            color: #334155;
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 20px;
+            position: relative;
+        }
+
+        .back-link {
+            position: absolute;
+            top: -20px;
+            left: 20px;
+            color: #334155;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .back-link:hover {
+            color: var(--color-target);
+        }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-top: 30px;
+        }
+
+        h2 { margin-top: 0; color: #0f172a; }
+
+        .layout-grid {
+            display: grid;
+            grid-template-columns: 3fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .plot-container {
+            background: #ffffff;
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: 10px;
+            height: 600px;
+            position: relative;
+        }
+
+        .side-panel {
+            background: #1e293b;
+            color: #f8fafc;
+            padding: 20px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .side-panel h3 {
+            margin-top: 0;
+            color: #cbd5e1;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 10px;
+        }
+
+        .info-box {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .selected-word {
+            font-size: 1.5rem;
+            color: #60a5fa;
+            font-weight: bold;
+            margin: 10px 0;
+            text-transform: capitalize;
+        }
+
+        .neighbors-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .neighbors-list li {
+            padding: 8px 10px;
+            background: rgba(0, 0, 0, 0.2);
+            margin-bottom: 5px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .neighbors-list li span.dist {
+            color: #94a3b8;
+            font-family: monospace;
+            font-size: 0.85rem;
+        }
+
+        .toggle-btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 10px;
+            transition: background 0.2s;
+            width: 100%;
+        }
+
+        .toggle-btn:hover {
+            background: #1d4ed8;
+        }
+
+        @media (max-width: 900px) {
+            .layout-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <a href="../index.html" class="back-link">
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+        </svg>
+        Volver al Menú
+    </a>
+
+    <div class="card">
+        <h2>Visualización de Embeddings Multilingües (Hugging Face)</h2>
+        <p>Estos embeddings fueron calculados <strong>fuera de línea</strong> usando modelos reales de NLP disponibles en Hugging Face, y luego proyectados a 2D utilizando Análisis de Componentes Principales (PCA).</p>
+        
+        <div class="layout-grid">
+            <div class="plot-container" id="tsnePlot"></div>
+
+            <div class="side-panel">
+                <h3>Modelo de Origen</h3>
+                <div class="info-box" id="modelInfo">
+                    <strong>Modelo Actual:</strong><br>
+                    <span style="color: #60a5fa;" id="modelName">MiniLM-L12-v2 (Multilingual)</span>
+                </div>
+                
+                <button class="toggle-btn" onclick="toggleModel()">Comparar con modelo DistilUSE</button>
+
+                <h3 style="margin-top: 20px;">Análisis de Similitud</h3>
+                <div class="info-box" id="defaultMsg">
+                    Selecciona una palabra en el gráfico para ver cuáles considera el modelo como sus "vecinos más cercanos".
+                </div>
+
+                <div id="analysisContent" style="display: none;">
+                    <div style="color: #94a3b8; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;">Palabra Seleccionada</div>
+                    <div class="selected-word" id="selWord">Balón</div>
+                    
+                    <div style="margin-top: 20px; margin-bottom: 10px; font-weight: bold; color: #cbd5e1;">Más cercanos (Distancia Euclidiana en 2D):</div>
+                    <ul class="neighbors-list" id="neighborsList">
+                        <!-- Llenado por JS -->
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Datos pre-calculados con Python (sentence-transformers + sklearn PCA)
+        const rawData = [
+            {"word": "delantero", "x1": 0.492, "y1": 0.289, "x2": 0.03, "y2": 0.291, "cluster": "Jugadores/Roles"},
+            {"word": "portero", "x1": 0.397, "y1": 0.529, "x2": 0.148, "y2": 0.323, "cluster": "Jugadores/Roles"},
+            {"word": "defensa", "x1": 1.326, "y1": -1.488, "x2": -0.131, "y2": 0.32, "cluster": "Jugadores/Roles"},
+            {"word": "mediocampista", "x1": 0.059, "y1": 0.315, "x2": 0.073, "y2": 0.096, "cluster": "Jugadores/Roles"},
+            {"word": "árbitro", "x1": 0.139, "y1": 0.843, "x2": 0.13, "y2": 0.229, "cluster": "Jugadores/Roles"},
+            {"word": "entrenador", "x1": 0.387, "y1": 0.4, "x2": 0.178, "y2": 0.282, "cluster": "Jugadores/Roles"},
+            {"word": "suplente", "x1": 0.294, "y1": 0.352, "x2": -0.12, "y2": -0.085, "cluster": "Jugadores/Roles"},
+            {"word": "capitán", "x1": 0.58, "y1": 0.329, "x2": 0.078, "y2": 0.224, "cluster": "Jugadores/Roles"},
+            {"word": "messi", "x1": 0.274, "y1": 0.612, "x2": -0.11, "y2": -0.081, "cluster": "Jugadores/Roles"},
+            {"word": "ronaldo", "x1": 0.517, "y1": 0.785, "x2": 0.224, "y2": 0.041, "cluster": "Jugadores/Roles"},
+            {"word": "chutar", "x1": 0.222, "y1": 0.822, "x2": -0.204, "y2": -0.139, "cluster": "Acciones"},
+            {"word": "pasar", "x1": 0.259, "y1": 0.522, "x2": -0.339, "y2": -0.209, "cluster": "Acciones"},
+            {"word": "regatear", "x1": 0.382, "y1": 0.176, "x2": -0.276, "y2": -0.181, "cluster": "Acciones"},
+            {"word": "atajar", "x1": 0.483, "y1": 0.68, "x2": -0.235, "y2": -0.138, "cluster": "Acciones"},
+            {"word": "cabecear", "x1": 0.148, "y1": 0.513, "x2": -0.031, "y2": 0.021, "cluster": "Acciones"},
+            {"word": "correr", "x1": 1.098, "y1": 0.021, "x2": -0.293, "y2": -0.13, "cluster": "Acciones"},
+            {"word": "saltar", "x1": 0.412, "y1": -0.139, "x2": -0.305, "y2": -0.131, "cluster": "Acciones"},
+            {"word": "defender", "x1": 1.922, "y1": -2.072, "x2": -0.207, "y2": 0.275, "cluster": "Acciones"},
+            {"word": "atacar", "x1": 1.936, "y1": -0.709, "x2": -0.328, "y2": 0.028, "cluster": "Acciones"},
+            {"word": "marcar", "x1": 0.031, "y1": 0.633, "x2": -0.181, "y2": -0.156, "cluster": "Acciones"},
+            {"word": "balón", "x1": -3.668, "y1": -0.36, "x2": 0.121, "y2": 0.182, "cluster": "Elementos"},
+            {"word": "portería", "x1": -0.036, "y1": 0.551, "x2": -0.162, "y2": 0.018, "cluster": "Elementos"},
+            {"word": "red", "x1": -0.597, "y1": 1.864, "x2": 0.219, "y2": -0.416, "cluster": "Elementos"},
+            {"word": "guantes", "x1": 0.272, "y1": -0.162, "x2": 0.209, "y2": 0.046, "cluster": "Elementos"},
+            {"word": "guayos", "x1": 0.099, "y1": 0.632, "x2": 0.004, "y2": -0.018, "cluster": "Elementos"},
+            {"word": "trofeo", "x1": -0.995, "y1": -0.61, "x2": 0.038, "y2": 0.024, "cluster": "Elementos"},
+            {"word": "estadio", "x1": -1.043, "y1": -1.199, "x2": 0.295, "y2": 0.179, "cluster": "Elementos"},
+            {"word": "cancha", "x1": 0.659, "y1": 1.173, "x2": 0.012, "y2": -0.076, "cluster": "Elementos"},
+            {"word": "gol", "x1": -0.01, "y1": -0.222, "x2": 0.033, "y2": 0.152, "cluster": "Eventos/Conceptos"},
+            {"word": "falta", "x1": 0.097, "y1": 0.739, "x2": -0.157, "y2": -0.143, "cluster": "Eventos/Conceptos"},
+            {"word": "penal", "x1": 1.74, "y1": -3.25, "x2": -0.083, "y2": 0.132, "cluster": "Eventos/Conceptos"},
+            {"word": "tiro libre", "x1": 0.116, "y1": 0.175, "x2": -0.03, "y2": 0.008, "cluster": "Eventos/Conceptos"},
+            {"word": "córner", "x1": 0.265, "y1": 0.374, "x2": -0.13, "y2": -0.048, "cluster": "Eventos/Conceptos"},
+            {"word": "tarjeta roja", "x1": -1.752, "y1": 1.09, "x2": 0.664, "y2": -0.425, "cluster": "Eventos/Conceptos"},
+            {"word": "tarjeta amarilla", "x1": -1.816, "y1": 0.468, "x2": 0.612, "y2": -0.366, "cluster": "Eventos/Conceptos"},
+            {"word": "var", "x1": 0.426, "y1": 0.595, "x2": -0.114, "y2": -0.11, "cluster": "Eventos/Conceptos"},
+            {"word": "baloncesto", "x1": -2.357, "y1": 0.173, "x2": 0.193, "y2": 0.232, "cluster": "Otros Deportes/Trampa"},
+            {"word": "tenis", "x1": -1.164, "y1": -3.201, "x2": 0.253, "y2": 0.178, "cluster": "Otros Deportes/Trampa"},
+            {"word": "raqueta", "x1": -0.363, "y1": -1.079, "x2": -0.048, "y2": -0.144, "cluster": "Otros Deportes/Trampa"},
+            {"word": "nadar", "x1": 0.036, "y1": 0.285, "x2": -0.043, "y2": -0.056, "cluster": "Otros Deportes/Trampa"},
+            {"word": "piscina", "x1": -2.646, "y1": -2.236, "x2": 0.121, "y2": -0.012, "cluster": "Otros Deportes/Trampa"},
+            {"word": "auto", "x1": 0.44, "y1": 0.394, "x2": 0.004, "y2": -0.078, "cluster": "Otros Deportes/Trampa"},
+            {"word": "conducir", "x1": 0.934, "y1": 0.392, "x2": -0.11, "y2": -0.137, "cluster": "Otros Deportes/Trampa"}
+        ];
+
+        let activeModel = 1; // 1 = MiniLM, 2 = DistilUSE
+
+        const colors = {
+            "Jugadores/Roles": "#3b82f6", 
+            "Acciones": "#10b981", 
+            "Elementos": "#f59e0b", 
+            "Eventos/Conceptos": "#ef4444",
+            "Otros Deportes/Trampa": "#8b5cf6"
+        };
+
+        function getDistance(p1, p2) {
+            const x1 = activeModel === 1 ? p1.x1 : p1.x2;
+            const y1 = activeModel === 1 ? p1.y1 : p1.y2;
+            const x2 = activeModel === 1 ? p2.x1 : p2.x2;
+            const y2 = activeModel === 1 ? p2.y1 : p2.y2;
+            return Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2));
+        }
+
+        function drawPlot() {
+            const traces = [];
+            const clusters = [...new Set(rawData.map(d => d.cluster))];
+
+            clusters.forEach(c => {
+                const clusterData = rawData.filter(d => d.cluster === c);
+                traces.push({
+                    x: clusterData.map(d => activeModel === 1 ? d.x1 : d.x2),
+                    y: clusterData.map(d => activeModel === 1 ? d.y1 : d.y2),
+                    text: clusterData.map(d => d.word),
+                    mode: 'markers+text',
+                    type: 'scatter',
+                    name: c,
+                    textposition: 'top center',
+                    textfont: {
+                        family: 'Segoe UI, sans-serif',
+                        size: 11,
+                        color: '#475569'
+                    },
+                    marker: { 
+                        size: 10,
+                        color: colors[c],
+                        line: { color: 'white', width: 1 }
+                    },
+                    hoverinfo: 'text'
+                });
+            });
+
+            const layout = {
+                margin: { t: 30, r: 20, l: 30, b: 30 },
+                showlegend: true,
+                legend: { orientation: 'h', y: -0.1 },
+                hovermode: 'closest',
+                xaxis: { showgrid: true, zeroline: false, showticklabels: false },
+                yaxis: { showgrid: true, zeroline: false, showticklabels: false },
+                plot_bgcolor: '#f8fafc',
+                paper_bgcolor: '#ffffff',
+                transition: { duration: 500 }
+            };
+
+            const config = { responsive: true, displayModeBar: false };
+            Plotly.react('tsnePlot', traces, layout, config);
+
+            // Re-bind click event
+            document.getElementById('tsnePlot').removeAllListeners('plotly_click');
+            document.getElementById('tsnePlot').on('plotly_click', function(data){
+                if(data.points.length === 0) return;
+                const clickedWordStr = data.points[0].text;
+                const clickedPoint = rawData.find(d => d.word === clickedWordStr);
+                if(!clickedPoint) return;
+
+                document.getElementById('defaultMsg').style.display = 'none';
+                document.getElementById('analysisContent').style.display = 'block';
+                document.getElementById('selWord').textContent = clickedPoint.word;
+
+                const distances = rawData
+                    .filter(d => d.word !== clickedPoint.word)
+                    .map(d => ({
+                        word: d.word,
+                        dist: getDistance(clickedPoint, d),
+                        cluster: d.cluster
+                    }))
+                    .sort((a, b) => a.dist - b.dist)
+                    .slice(0, 5);
+
+                const listEl = document.getElementById('neighborsList');
+                listEl.innerHTML = '';
+                distances.forEach(d => {
+                    const li = document.createElement('li');
+                    const dot = `<span style="display:inline-block; width:10px; height:10px; border-radius:50%; background-color:${colors[d.cluster]}; margin-right:8px;"></span>`;
+                    li.innerHTML = `<div>${dot} ${d.word}</div> <span class="dist">${d.dist.toFixed(3)} u</span>`;
+                    listEl.appendChild(li);
+                });
+            });
+        }
+
+        function toggleModel() {
+            activeModel = activeModel === 1 ? 2 : 1;
+            const modelNameEl = document.getElementById('modelName');
+            
+            if (activeModel === 1) {
+                modelNameEl.textContent = "MiniLM-L12-v2 (Multilingual)";
+                document.querySelector('.toggle-btn').textContent = "Comparar con modelo DistilUSE";
+            } else {
+                modelNameEl.textContent = "DistilUSE-base-multilingual-cased";
+                document.querySelector('.toggle-btn').textContent = "Volver a modelo MiniLM";
+            }
+            
+            // Limpiar análisis actual
+            document.getElementById('defaultMsg').style.display = 'block';
+            document.getElementById('analysisContent').style.display = 'none';
+            
+            drawPlot();
+        }
+
+        // Init
+        window.addEventListener('DOMContentLoaded', drawPlot);
+    </script>
+</body>
+</html>
