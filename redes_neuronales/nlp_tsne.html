@@ -136,11 +136,46 @@
             background: #1d4ed8;
         }
 
-        @media (max-width: 900px) {
-            .layout-grid {
-                grid-template-columns: 1fr;
-            }
+        .metric {
+            margin-bottom: 10px;
         }
+        .metric-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            margin-bottom: 4px;
+            color: #cbd5e1;
+        }
+        .progress-bar-bg {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            height: 6px;
+            width: 100%;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            background: #60a5fa;
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease, background-color 0.5s ease;
+        }
+        .tag-container {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+        .tag {
+            background: rgba(96, 165, 250, 0.15);
+            border: 1px solid rgba(96, 165, 250, 0.3);
+            color: #93c5fd;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        @media (max-width: 900px) {
     </style>
 </head>
 <body>
@@ -164,11 +199,8 @@
                 <div class="info-box" id="modelInfo">
                     <strong>Modelo Actual (<span id="modelCounter">1</span>/4):</strong><br>
                     <span style="color: #60a5fa;" id="modelName">MiniLM-L12-v2 (Multilingual)</span>
-                    <div id="modelCard" style="margin-top: 10px; font-size: 0.8rem; color: #94a3b8; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px;">
-                        <strong>Dimensiones:</strong> 384<br>
-                        <strong>Base:</strong> MiniLM (Ligero)<br>
-                        <strong>Dataset de Entrenamiento:</strong> ~400 Millones de pares (Multilingüe)<br>
-                        <strong>Tipo:</strong> Parafraseo en 50+ idiomas
+                    <div id="modelCard" style="margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px;">
+                        <!-- JS llenará esto -->
                     </div>
                 </div>
                 
@@ -338,39 +370,95 @@
             const modelNameEl = document.getElementById('modelName');
             document.getElementById('modelCounter').textContent = activeModel;
             
+            let cardHtml = '';
+            
             if (activeModel === 1) {
                 modelNameEl.textContent = "MiniLM-L12-v2 (Multilingual)";
-                document.getElementById('modelCard').innerHTML = `
-                    <strong>Dimensiones:</strong> 384<br>
-                    <strong>Base:</strong> MiniLM (Ligero)<br>
-                    <strong>Dataset de Entrenamiento:</strong> ~400 Millones de pares (Multilingüe)<br>
-                    <strong>Tipo:</strong> Parafraseo en 50+ idiomas
+                cardHtml = `
+                    <div class="metric">
+                        <div class="metric-header"><span>Dimensiones</span><span>384</span></div>
+                        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: ${(384/512)*100}%; background: #3b82f6;"></div></div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-header"><span>Parámetros</span><span>118 Millones</span></div>
+                        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: ${(118/135)*100}%; background: #10b981;"></div></div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-header"><span>Datos Entrenamiento</span><span>~400M Pares</span></div>
+                        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: 40%; background: #f59e0b;"></div></div>
+                    </div>
+                    <div class="tag-container">
+                        <span class="tag">Multilingüe (50+)</span>
+                        <span class="tag">Parafraseo</span>
+                        <span class="tag">Transformer</span>
+                    </div>
                 `;
             } else if (activeModel === 2) {
-                modelNameEl.textContent = "DistilUSE-base-multilingual-cased";
-                document.getElementById('modelCard').innerHTML = `
-                    <strong>Dimensiones:</strong> 512<br>
-                    <strong>Base:</strong> mBERT / DistilBERT<br>
-                    <strong>Dataset de Entrenamiento:</strong> Millones de textos (Wikipedia, etc.)<br>
-                    <strong>Tipo:</strong> Universal Sentence Encoder (Multilingüe)
+                modelNameEl.textContent = "DistilUSE-base-multilingual";
+                cardHtml = `
+                    <div class="metric">
+                        <div class="metric-header"><span>Dimensiones</span><span>512</span></div>
+                        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: ${(512/512)*100}%; background: #3b82f6;"></div></div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-header"><span>Parámetros</span><span>~135 Millones</span></div>
+                        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: ${(135/135)*100}%; background: #10b981;"></div></div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-header"><span>Datos Entrenamiento</span><span>Wikipedia + SNLI</span></div>
+                        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: 60%; background: #f59e0b;"></div></div>
+                    </div>
+                    <div class="tag-container">
+                        <span class="tag">Multilingüe (15+)</span>
+                        <span class="tag">mBERT</span>
+                        <span class="tag">Distilación</span>
+                    </div>
                 `;
             } else if (activeModel === 3) {
-                modelNameEl.textContent = "GloVe-6B-300d (Solo Inglés)";
-                document.getElementById('modelCard').innerHTML = `
-                    <strong>Dimensiones:</strong> 300<br>
-                    <strong>Base:</strong> GloVe (Clásico)<br>
-                    <strong>Dataset de Entrenamiento:</strong> 6 Billones de tokens (Wikipedia 2014)<br>
-                    <strong>Tipo:</strong> Embeddings de palabras simples
+                modelNameEl.textContent = "GloVe-6B-300d (Inglés)";
+                cardHtml = `
+                    <div class="metric">
+                        <div class="metric-header"><span>Dimensiones</span><span>300</span></div>
+                        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: ${(300/512)*100}%; background: #3b82f6;"></div></div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-header"><span>Parámetros</span><span>(Estático) 400K Vocab</span></div>
+                        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: 5%; background: #94a3b8;"></div></div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-header"><span>Datos Entrenamiento</span><span>6 Billones de Tokens</span></div>
+                        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: 100%; background: #f59e0b;"></div></div>
+                    </div>
+                    <div class="tag-container">
+                        <span class="tag" style="color:#ef4444; border-color: rgba(239, 68, 68, 0.3)">Sólo Inglés</span>
+                        <span class="tag">Co-ocurrencia</span>
+                        <span class="tag">No-Contextual</span>
+                    </div>
                 `;
             } else if (activeModel === 4) {
-                modelNameEl.textContent = "MiniLM-L6-v2 (Solo Inglés)";
-                document.getElementById('modelCard').innerHTML = `
-                    <strong>Dimensiones:</strong> 384<br>
-                    <strong>Base:</strong> MiniLM (Inglés)<br>
-                    <strong>Dataset de Entrenamiento:</strong> 1 Billón (1B) de pares de frases<br>
-                    <strong>Nota:</strong> Como solo sabe inglés, las palabras en español las ve extrañas y genera agrupaciones curiosas.
+                modelNameEl.textContent = "MiniLM-L6-v2 (Inglés)";
+                cardHtml = `
+                    <div class="metric">
+                        <div class="metric-header"><span>Dimensiones</span><span>384</span></div>
+                        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: ${(384/512)*100}%; background: #3b82f6;"></div></div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-header"><span>Parámetros</span><span>22.7 Millones</span></div>
+                        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: ${(22.7/135)*100}%; background: #10b981;"></div></div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-header"><span>Datos Entrenamiento</span><span>1 Billón (1B) Pares</span></div>
+                        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: 100%; background: #f59e0b;"></div></div>
+                    </div>
+                    <div class="tag-container">
+                        <span class="tag" style="color:#ef4444; border-color: rgba(239, 68, 68, 0.3)">Sólo Inglés</span>
+                        <span class="tag">Sentence-BERT</span>
+                        <span class="tag">Transformer Ligero</span>
+                    </div>
                 `;
             }
+
+            document.getElementById('modelCard').innerHTML = cardHtml;
             
             // Limpiar análisis actual
             document.getElementById('defaultMsg').style.display = 'block';
@@ -380,7 +468,11 @@
         }
 
         // Init
-        window.addEventListener('DOMContentLoaded', drawPlot);
+        window.addEventListener('DOMContentLoaded', () => {
+            // Fuerza la renderización inicial de la tarjeta
+            activeModel = 4;
+            toggleModel();
+        });
     </script>
 </body>
 </html>
