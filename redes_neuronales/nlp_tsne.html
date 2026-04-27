@@ -164,6 +164,11 @@
                 <div class="info-box" id="modelInfo">
                     <strong>Modelo Actual:</strong><br>
                     <span style="color: #60a5fa;" id="modelName">MiniLM-L12-v2 (Multilingual)</span>
+                    <div id="modelCard" style="margin-top: 10px; font-size: 0.8rem; color: #94a3b8; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px;">
+                        <strong>Dimensiones:</strong> 384<br>
+                        <strong>Base:</strong> MiniLM (Ligero)<br>
+                        <strong>Entrenamiento:</strong> Parafraseo en 50+ idiomas
+                    </div>
                 </div>
                 
                 <button class="toggle-btn" onclick="toggleModel()">Comparar con modelo DistilUSE</button>
@@ -334,9 +339,19 @@
             
             if (activeModel === 1) {
                 modelNameEl.textContent = "MiniLM-L12-v2 (Multilingual)";
+                document.getElementById('modelCard').innerHTML = `
+                    <strong>Dimensiones:</strong> 384<br>
+                    <strong>Base:</strong> MiniLM (Ligero)<br>
+                    <strong>Entrenamiento:</strong> Parafraseo en 50+ idiomas
+                `;
                 document.querySelector('.toggle-btn').textContent = "Comparar con modelo DistilUSE";
             } else {
                 modelNameEl.textContent = "DistilUSE-base-multilingual-cased";
+                document.getElementById('modelCard').innerHTML = `
+                    <strong>Dimensiones:</strong> 512<br>
+                    <strong>Base:</strong> mBERT / DistilBERT<br>
+                    <strong>Entrenamiento:</strong> Universal Sentence Encoder (Multilingüe)
+                `;
                 document.querySelector('.toggle-btn').textContent = "Volver a modelo MiniLM";
             }
             
