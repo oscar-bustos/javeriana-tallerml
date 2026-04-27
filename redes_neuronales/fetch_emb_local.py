@@ -10,27 +10,37 @@ words = [
     "baloncesto", "tenis", "raqueta", "nadar", "piscina", "auto", "conducir"
 ]
 
-print("Loading Model 1 (paraphrase-multilingual-MiniLM-L12-v2)...")
-model1 = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
-emb1 = model1.encode(words)
+print("Loading M1 (paraphrase-multilingual-MiniLM-L12-v2)...")
+m1 = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+e1 = m1.encode(words)
 
-print("Loading Model 2 (distiluse-base-multilingual-cased-v1)...")
-model2 = SentenceTransformer('distiluse-base-multilingual-cased-v1')
-emb2 = model2.encode(words)
+print("Loading M2 (distiluse-base-multilingual-cased-v1)...")
+m2 = SentenceTransformer('distiluse-base-multilingual-cased-v1')
+e2 = m2.encode(words)
+
+print("Loading M3 (average_word_embeddings_glove.6B.300d)...")
+m3 = SentenceTransformer('average_word_embeddings_glove.6B.300d')
+e3 = m3.encode(words)
+
+print("Loading M4 (all-MiniLM-L6-v2)...")
+m4 = SentenceTransformer('all-MiniLM-L6-v2')
+e4 = m4.encode(words)
 
 print("Running PCA...")
 pca = PCA(n_components=2)
-proj1 = pca.fit_transform(emb1)
-proj2 = pca.fit_transform(emb2)
+p1 = pca.fit_transform(e1)
+p2 = pca.fit_transform(e2)
+p3 = pca.fit_transform(e3)
+p4 = pca.fit_transform(e4)
 
 result = []
 for i, word in enumerate(words):
     result.append({
         "word": word,
-        "x1": round(float(proj1[i][0]), 3),
-        "y1": round(float(proj1[i][1]), 3),
-        "x2": round(float(proj2[i][0]), 3),
-        "y2": round(float(proj2[i][1]), 3)
+        "x1": round(float(p1[i][0]), 3), "y1": round(float(p1[i][1]), 3),
+        "x2": round(float(p2[i][0]), 3), "y2": round(float(p2[i][1]), 3),
+        "x3": round(float(p3[i][0]), 3), "y3": round(float(p3[i][1]), 3),
+        "x4": round(float(p4[i][0]), 3), "y4": round(float(p4[i][1]), 3)
     })
 
 with open("embeddings_result.json", "w", encoding="utf-8") as f:

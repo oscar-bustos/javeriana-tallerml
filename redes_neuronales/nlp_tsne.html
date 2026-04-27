@@ -153,8 +153,8 @@
     </a>
 
     <div class="card">
-        <h2>Visualización de Embeddings Multilingües (Hugging Face)</h2>
-        <p>Estos embeddings fueron calculados <strong>fuera de línea</strong> usando modelos reales de NLP disponibles en Hugging Face, y luego proyectados a 2D utilizando Análisis de Componentes Principales (PCA).</p>
+        <h2>Visualización de Embeddings (Hugging Face)</h2>
+        <p>Estos embeddings fueron calculados <strong>fuera de línea</strong> usando modelos reales de NLP disponibles en Hugging Face, y luego proyectados a 2D utilizando Análisis de Componentes Principales (PCA). Prueba comparar un modelo que "entiende" español multilingüe con modelos simples en inglés.</p>
         
         <div class="layout-grid">
             <div class="plot-container" id="tsnePlot"></div>
@@ -162,16 +162,17 @@
             <div class="side-panel">
                 <h3>Modelo de Origen</h3>
                 <div class="info-box" id="modelInfo">
-                    <strong>Modelo Actual:</strong><br>
+                    <strong>Modelo Actual (<span id="modelCounter">1</span>/4):</strong><br>
                     <span style="color: #60a5fa;" id="modelName">MiniLM-L12-v2 (Multilingual)</span>
                     <div id="modelCard" style="margin-top: 10px; font-size: 0.8rem; color: #94a3b8; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px;">
                         <strong>Dimensiones:</strong> 384<br>
                         <strong>Base:</strong> MiniLM (Ligero)<br>
-                        <strong>Entrenamiento:</strong> Parafraseo en 50+ idiomas
+                        <strong>Dataset de Entrenamiento:</strong> ~400 Millones de pares (Multilingüe)<br>
+                        <strong>Tipo:</strong> Parafraseo en 50+ idiomas
                     </div>
                 </div>
                 
-                <button class="toggle-btn" onclick="toggleModel()">Comparar con modelo DistilUSE</button>
+                <button class="toggle-btn" onclick="toggleModel()">Siguiente Modelo de IA</button>
 
                 <h3 style="margin-top: 20px;">Análisis de Similitud</h3>
                 <div class="info-box" id="defaultMsg">
@@ -192,54 +193,53 @@
     </div>
 
     <script>
-        // Datos pre-calculados con Python (sentence-transformers + sklearn PCA)
         const rawData = [
-            {"word": "delantero", "x1": 0.492, "y1": 0.289, "x2": 0.03, "y2": 0.291, "cluster": "Jugadores/Roles"},
-            {"word": "portero", "x1": 0.397, "y1": 0.529, "x2": 0.148, "y2": 0.323, "cluster": "Jugadores/Roles"},
-            {"word": "defensa", "x1": 1.326, "y1": -1.488, "x2": -0.131, "y2": 0.32, "cluster": "Jugadores/Roles"},
-            {"word": "mediocampista", "x1": 0.059, "y1": 0.315, "x2": 0.073, "y2": 0.096, "cluster": "Jugadores/Roles"},
-            {"word": "árbitro", "x1": 0.139, "y1": 0.843, "x2": 0.13, "y2": 0.229, "cluster": "Jugadores/Roles"},
-            {"word": "entrenador", "x1": 0.387, "y1": 0.4, "x2": 0.178, "y2": 0.282, "cluster": "Jugadores/Roles"},
-            {"word": "suplente", "x1": 0.294, "y1": 0.352, "x2": -0.12, "y2": -0.085, "cluster": "Jugadores/Roles"},
-            {"word": "capitán", "x1": 0.58, "y1": 0.329, "x2": 0.078, "y2": 0.224, "cluster": "Jugadores/Roles"},
-            {"word": "messi", "x1": 0.274, "y1": 0.612, "x2": -0.11, "y2": -0.081, "cluster": "Jugadores/Roles"},
-            {"word": "ronaldo", "x1": 0.517, "y1": 0.785, "x2": 0.224, "y2": 0.041, "cluster": "Jugadores/Roles"},
-            {"word": "chutar", "x1": 0.222, "y1": 0.822, "x2": -0.204, "y2": -0.139, "cluster": "Acciones"},
-            {"word": "pasar", "x1": 0.259, "y1": 0.522, "x2": -0.339, "y2": -0.209, "cluster": "Acciones"},
-            {"word": "regatear", "x1": 0.382, "y1": 0.176, "x2": -0.276, "y2": -0.181, "cluster": "Acciones"},
-            {"word": "atajar", "x1": 0.483, "y1": 0.68, "x2": -0.235, "y2": -0.138, "cluster": "Acciones"},
-            {"word": "cabecear", "x1": 0.148, "y1": 0.513, "x2": -0.031, "y2": 0.021, "cluster": "Acciones"},
-            {"word": "correr", "x1": 1.098, "y1": 0.021, "x2": -0.293, "y2": -0.13, "cluster": "Acciones"},
-            {"word": "saltar", "x1": 0.412, "y1": -0.139, "x2": -0.305, "y2": -0.131, "cluster": "Acciones"},
-            {"word": "defender", "x1": 1.922, "y1": -2.072, "x2": -0.207, "y2": 0.275, "cluster": "Acciones"},
-            {"word": "atacar", "x1": 1.936, "y1": -0.709, "x2": -0.328, "y2": 0.028, "cluster": "Acciones"},
-            {"word": "marcar", "x1": 0.031, "y1": 0.633, "x2": -0.181, "y2": -0.156, "cluster": "Acciones"},
-            {"word": "balón", "x1": -3.668, "y1": -0.36, "x2": 0.121, "y2": 0.182, "cluster": "Elementos"},
-            {"word": "portería", "x1": -0.036, "y1": 0.551, "x2": -0.162, "y2": 0.018, "cluster": "Elementos"},
-            {"word": "red", "x1": -0.597, "y1": 1.864, "x2": 0.219, "y2": -0.416, "cluster": "Elementos"},
-            {"word": "guantes", "x1": 0.272, "y1": -0.162, "x2": 0.209, "y2": 0.046, "cluster": "Elementos"},
-            {"word": "guayos", "x1": 0.099, "y1": 0.632, "x2": 0.004, "y2": -0.018, "cluster": "Elementos"},
-            {"word": "trofeo", "x1": -0.995, "y1": -0.61, "x2": 0.038, "y2": 0.024, "cluster": "Elementos"},
-            {"word": "estadio", "x1": -1.043, "y1": -1.199, "x2": 0.295, "y2": 0.179, "cluster": "Elementos"},
-            {"word": "cancha", "x1": 0.659, "y1": 1.173, "x2": 0.012, "y2": -0.076, "cluster": "Elementos"},
-            {"word": "gol", "x1": -0.01, "y1": -0.222, "x2": 0.033, "y2": 0.152, "cluster": "Eventos/Conceptos"},
-            {"word": "falta", "x1": 0.097, "y1": 0.739, "x2": -0.157, "y2": -0.143, "cluster": "Eventos/Conceptos"},
-            {"word": "penal", "x1": 1.74, "y1": -3.25, "x2": -0.083, "y2": 0.132, "cluster": "Eventos/Conceptos"},
-            {"word": "tiro libre", "x1": 0.116, "y1": 0.175, "x2": -0.03, "y2": 0.008, "cluster": "Eventos/Conceptos"},
-            {"word": "córner", "x1": 0.265, "y1": 0.374, "x2": -0.13, "y2": -0.048, "cluster": "Eventos/Conceptos"},
-            {"word": "tarjeta roja", "x1": -1.752, "y1": 1.09, "x2": 0.664, "y2": -0.425, "cluster": "Eventos/Conceptos"},
-            {"word": "tarjeta amarilla", "x1": -1.816, "y1": 0.468, "x2": 0.612, "y2": -0.366, "cluster": "Eventos/Conceptos"},
-            {"word": "var", "x1": 0.426, "y1": 0.595, "x2": -0.114, "y2": -0.11, "cluster": "Eventos/Conceptos"},
-            {"word": "baloncesto", "x1": -2.357, "y1": 0.173, "x2": 0.193, "y2": 0.232, "cluster": "Otros Deportes/Trampa"},
-            {"word": "tenis", "x1": -1.164, "y1": -3.201, "x2": 0.253, "y2": 0.178, "cluster": "Otros Deportes/Trampa"},
-            {"word": "raqueta", "x1": -0.363, "y1": -1.079, "x2": -0.048, "y2": -0.144, "cluster": "Otros Deportes/Trampa"},
-            {"word": "nadar", "x1": 0.036, "y1": 0.285, "x2": -0.043, "y2": -0.056, "cluster": "Otros Deportes/Trampa"},
-            {"word": "piscina", "x1": -2.646, "y1": -2.236, "x2": 0.121, "y2": -0.012, "cluster": "Otros Deportes/Trampa"},
-            {"word": "auto", "x1": 0.44, "y1": 0.394, "x2": 0.004, "y2": -0.078, "cluster": "Otros Deportes/Trampa"},
-            {"word": "conducir", "x1": 0.934, "y1": 0.392, "x2": -0.11, "y2": -0.137, "cluster": "Otros Deportes/Trampa"}
+          {"word": "delantero", "cluster": "Jugadores/Roles", "x1": 0.492, "y1": 0.289, "x2": 0.03, "y2": 0.291, "x3": -0.94, "y3": -0.657, "x4": -0.305, "y4": -0.007},
+          {"word": "portero", "cluster": "Jugadores/Roles", "x1": 0.397, "y1": 0.529, "x2": 0.148, "y2": 0.323, "x3": 0.867, "y3": -1.031, "x4": -0.473, "y4": -0.206},
+          {"word": "defensa", "cluster": "Jugadores/Roles", "x1": 1.326, "y1": -1.488, "x2": -0.131, "y2": 0.32, "x3": 2.401, "y3": 0.743, "x4": 0.042, "y4": -0.05},
+          {"word": "mediocampista", "cluster": "Jugadores/Roles", "x1": 0.059, "y1": 0.315, "x2": 0.073, "y2": 0.095, "x3": -0.94, "y3": -0.657, "x4": -0.153, "y4": 0.028},
+          {"word": "árbitro", "cluster": "Jugadores/Roles", "x1": 0.139, "y1": 0.843, "x2": 0.13, "y2": 0.23, "x3": -0.94, "y3": -0.657, "x4": -0.112, "y4": 0.058},
+          {"word": "entrenador", "cluster": "Jugadores/Roles", "x1": 0.387, "y1": 0.4, "x2": 0.178, "y2": 0.282, "x3": -0.94, "y3": -0.657, "x4": 0.018, "y4": 0.09},
+          {"word": "suplente", "cluster": "Jugadores/Roles", "x1": 0.294, "y1": 0.352, "x2": -0.12, "y2": -0.085, "x3": -0.94, "y3": -0.657, "x4": -0.237, "y4": -0.058},
+          {"word": "capitán", "cluster": "Jugadores/Roles", "x1": 0.58, "y1": 0.329, "x2": 0.078, "y2": 0.224, "x3": 2.29, "y3": -0.097, "x4": 0.24, "y4": -0.083},
+          {"word": "messi", "cluster": "Jugadores/Roles", "x1": 0.274, "y1": 0.612, "x2": -0.11, "y2": -0.081, "x3": -2.563, "y3": 4.393, "x4": 0.015, "y4": -0.169},
+          {"word": "ronaldo", "cluster": "Jugadores/Roles", "x1": 0.517, "y1": 0.785, "x2": 0.224, "y2": 0.041, "x3": -3.454, "y3": 4.045, "x4": -0.119, "y4": -0.114},
+          {"word": "chutar", "cluster": "Acciones", "x1": 0.222, "y1": 0.822, "x2": -0.204, "y2": -0.139, "x3": -0.94, "y3": -0.657, "x4": 0.205, "y4": -0.065},
+          {"word": "pasar", "cluster": "Acciones", "x1": 0.259, "y1": 0.522, "x2": -0.339, "y2": -0.209, "x3": 2.112, "y3": -1.626, "x4": 0.12, "y4": 0.381},
+          {"word": "regatear", "cluster": "Acciones", "x1": 0.382, "y1": 0.176, "x2": -0.276, "y2": -0.181, "x3": -0.94, "y3": -0.657, "x4": 0.212, "y4": 0.339},
+          {"word": "atajar", "cluster": "Acciones", "x1": 0.483, "y1": 0.68, "x2": -0.235, "y2": -0.138, "x3": -0.94, "y3": -0.657, "x4": 0.09, "y4": 0.249},
+          {"word": "cabecear", "cluster": "Acciones", "x1": 0.148, "y1": 0.513, "x2": -0.031, "y2": 0.021, "x3": -0.94, "y3": -0.657, "x4": -0.022, "y4": 0.436},
+          {"word": "correr", "cluster": "Acciones", "x1": 1.098, "y1": 0.021, "x2": -0.293, "y2": -0.13, "x3": 1.888, "y3": -1.099, "x4": 0.266, "y4": -0.018},
+          {"word": "saltar", "cluster": "Acciones", "x1": 0.412, "y1": -0.139, "x2": -0.305, "y2": -0.131, "x3": -0.94, "y3": -0.657, "x4": 0.269, "y4": 0.334},
+          {"word": "defender", "cluster": "Acciones", "x1": 1.922, "y1": -2.072, "x2": -0.207, "y2": 0.275, "x3": -3.478, "y3": 3.822, "x4": 0.082, "y4": -0.179},
+          {"word": "atacar", "cluster": "Acciones", "x1": 1.936, "y1": -0.709, "x2": -0.328, "y2": 0.028, "x3": -0.94, "y3": -0.657, "x4": 0.07, "y4": 0.286},
+          {"word": "marcar", "cluster": "Acciones", "x1": 0.031, "y1": 0.633, "x2": -0.181, "y2": -0.156, "x3": -0.94, "y3": -0.657, "x4": 0.19, "y4": 0.409},
+          {"word": "balón", "cluster": "Elementos", "x1": -3.668, "y1": -0.36, "x2": 0.121, "y2": 0.182, "x3": -0.94, "y3": -0.657, "x4": -0.203, "y4": -0.101},
+          {"word": "portería", "cluster": "Elementos", "x1": -0.036, "y1": 0.551, "x2": -0.162, "y2": 0.018, "x3": -0.94, "y3": -0.657, "x4": -0.495, "y4": -0.119},
+          {"word": "red", "cluster": "Elementos", "x1": -0.597, "y1": 1.864, "x2": 0.219, "y2": -0.417, "x3": -3.492, "y3": -0.062, "x4": 0.258, "y4": -0.202},
+          {"word": "guantes", "cluster": "Elementos", "x1": 0.272, "y1": -0.162, "x2": 0.209, "y2": 0.046, "x3": -0.94, "y3": -0.657, "x4": -0.121, "y4": -0.173},
+          {"word": "guayos", "cluster": "Elementos", "x1": 0.099, "y1": 0.632, "x2": 0.004, "y2": -0.018, "x3": -0.94, "y3": -0.657, "x4": 0.085, "y4": -0.375},
+          {"word": "trofeo", "cluster": "Elementos", "x1": -0.995, "y1": -0.61, "x2": 0.038, "y2": 0.025, "x3": 2.986, "y3": 2.595, "x4": -0.114, "y4": 0.003},
+          {"word": "estadio", "cluster": "Elementos", "x1": -1.043, "y1": -1.199, "x2": 0.295, "y2": 0.18, "x3": 3.064, "y3": 2.335, "x4": -0.045, "y4": -0.389},
+          {"word": "cancha", "cluster": "Elementos", "x1": 0.659, "y1": 1.173, "x2": 0.012, "y2": -0.077, "x3": 1.985, "y3": -0.241, "x4": 0.219, "y4": -0.211},
+          {"word": "gol", "cluster": "Eventos/Conceptos", "x1": -0.01, "y1": -0.222, "x2": 0.033, "y2": 0.152, "x3": -0.479, "y3": 1.06, "x4": 0.244, "y4": -0.244},
+          {"word": "falta", "cluster": "Eventos/Conceptos", "x1": 0.097, "y1": 0.739, "x2": -0.157, "y2": -0.143, "x3": 2.617, "y3": -2.004, "x4": 0.082, "y4": 0.004},
+          {"word": "penal", "cluster": "Eventos/Conceptos", "x1": 1.74, "y1": -3.25, "x2": -0.083, "y2": 0.132, "x3": -1.317, "y3": -1.459, "x4": 0.165, "y4": -0.23},
+          {"word": "tiro libre", "cluster": "Eventos/Conceptos", "x1": 0.116, "y1": 0.175, "x2": -0.03, "y2": 0.008, "x3": 1.235, "y3": -0.2, "x4": -0.219, "y4": -0.102},
+          {"word": "córner", "cluster": "Eventos/Conceptos", "x1": 0.265, "y1": 0.374, "x2": -0.13, "y2": -0.048, "x3": -0.94, "y3": -0.657, "x4": 0.136, "y4": -0.232},
+          {"word": "tarjeta roja", "cluster": "Eventos/Conceptos", "x1": -1.752, "y1": 1.09, "x2": 0.664, "y2": -0.425, "x3": 1.602, "y3": -0.446, "x4": -0.357, "y4": 0.357},
+          {"word": "tarjeta amarilla", "cluster": "Eventos/Conceptos", "x1": -1.816, "y1": 0.468, "x2": 0.612, "y2": -0.366, "x3": 1.548, "y3": -0.098, "x4": -0.485, "y4": 0.311},
+          {"word": "var", "cluster": "Eventos/Conceptos", "x1": 0.426, "y1": 0.595, "x2": -0.114, "y2": -0.111, "x3": 1.222, "y3": -0.927, "x4": 0.279, "y4": -0.191},
+          {"word": "baloncesto", "cluster": "Otros Deportes/Trampa", "x1": -2.357, "y1": 0.173, "x2": 0.193, "y2": 0.232, "x3": 3.527, "y3": 3.985, "x4": -0.436, "y4": -0.016},
+          {"word": "tenis", "cluster": "Otros Deportes/Trampa", "x1": -1.164, "y1": -3.201, "x2": 0.253, "y2": 0.178, "x3": 3.148, "y3": 2.262, "x4": 0.078, "y4": -0.193},
+          {"word": "raqueta", "cluster": "Otros Deportes/Trampa", "x1": -0.363, "y1": -1.079, "x2": -0.048, "y2": -0.144, "x3": -0.94, "y3": -0.657, "x4": -0.148, "y4": -0.01},
+          {"word": "nadar", "cluster": "Otros Deportes/Trampa", "x1": 0.036, "y1": 0.285, "x2": -0.043, "y2": -0.056, "x3": 0.892, "y3": -0.851, "x4": 0.186, "y4": 0.409},
+          {"word": "piscina", "cluster": "Otros Deportes/Trampa", "x1": -2.646, "y1": -2.236, "x2": 0.121, "y2": -0.012, "x3": 1.825, "y3": -0.928, "x4": -0.02, "y4": 0.035},
+          {"word": "auto", "cluster": "Otros Deportes/Trampa", "x1": 0.44, "y1": 0.394, "x2": 0.004, "y2": -0.079, "x3": -2.557, "y3": -1.699, "x4": 0.218, "y4": -0.004},
+          {"word": "conducir", "cluster": "Otros Deportes/Trampa", "x1": 0.934, "y1": 0.392, "x2": -0.11, "y2": -0.137, "x3": -0.94, "y3": -0.657, "x4": 0.295, "y4": 0.014}
         ];
 
-        let activeModel = 1; // 1 = MiniLM, 2 = DistilUSE
+        let activeModel = 1;
 
         const colors = {
             "Jugadores/Roles": "#3b82f6", 
@@ -250,10 +250,10 @@
         };
 
         function getDistance(p1, p2) {
-            const x1 = activeModel === 1 ? p1.x1 : p1.x2;
-            const y1 = activeModel === 1 ? p1.y1 : p1.y2;
-            const x2 = activeModel === 1 ? p2.x1 : p2.x2;
-            const y2 = activeModel === 1 ? p2.y1 : p2.y2;
+            const x1 = p1[`x${activeModel}`];
+            const y1 = p1[`y${activeModel}`];
+            const x2 = p2[`x${activeModel}`];
+            const y2 = p2[`y${activeModel}`];
             return Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2));
         }
 
@@ -264,8 +264,8 @@
             clusters.forEach(c => {
                 const clusterData = rawData.filter(d => d.cluster === c);
                 traces.push({
-                    x: clusterData.map(d => activeModel === 1 ? d.x1 : d.x2),
-                    y: clusterData.map(d => activeModel === 1 ? d.y1 : d.y2),
+                    x: clusterData.map(d => d[`x${activeModel}`]),
+                    y: clusterData.map(d => d[`y${activeModel}`]),
                     text: clusterData.map(d => d.word),
                     mode: 'markers+text',
                     type: 'scatter',
@@ -334,25 +334,42 @@
         }
 
         function toggleModel() {
-            activeModel = activeModel === 1 ? 2 : 1;
+            activeModel = activeModel >= 4 ? 1 : activeModel + 1;
             const modelNameEl = document.getElementById('modelName');
+            document.getElementById('modelCounter').textContent = activeModel;
             
             if (activeModel === 1) {
                 modelNameEl.textContent = "MiniLM-L12-v2 (Multilingual)";
                 document.getElementById('modelCard').innerHTML = `
                     <strong>Dimensiones:</strong> 384<br>
                     <strong>Base:</strong> MiniLM (Ligero)<br>
-                    <strong>Entrenamiento:</strong> Parafraseo en 50+ idiomas
+                    <strong>Dataset de Entrenamiento:</strong> ~400 Millones de pares (Multilingüe)<br>
+                    <strong>Tipo:</strong> Parafraseo en 50+ idiomas
                 `;
-                document.querySelector('.toggle-btn').textContent = "Comparar con modelo DistilUSE";
-            } else {
+            } else if (activeModel === 2) {
                 modelNameEl.textContent = "DistilUSE-base-multilingual-cased";
                 document.getElementById('modelCard').innerHTML = `
                     <strong>Dimensiones:</strong> 512<br>
                     <strong>Base:</strong> mBERT / DistilBERT<br>
-                    <strong>Entrenamiento:</strong> Universal Sentence Encoder (Multilingüe)
+                    <strong>Dataset de Entrenamiento:</strong> Millones de textos (Wikipedia, etc.)<br>
+                    <strong>Tipo:</strong> Universal Sentence Encoder (Multilingüe)
                 `;
-                document.querySelector('.toggle-btn').textContent = "Volver a modelo MiniLM";
+            } else if (activeModel === 3) {
+                modelNameEl.textContent = "GloVe-6B-300d (Solo Inglés)";
+                document.getElementById('modelCard').innerHTML = `
+                    <strong>Dimensiones:</strong> 300<br>
+                    <strong>Base:</strong> GloVe (Clásico)<br>
+                    <strong>Dataset de Entrenamiento:</strong> 6 Billones de tokens (Wikipedia 2014)<br>
+                    <strong>Tipo:</strong> Embeddings de palabras simples
+                `;
+            } else if (activeModel === 4) {
+                modelNameEl.textContent = "MiniLM-L6-v2 (Solo Inglés)";
+                document.getElementById('modelCard').innerHTML = `
+                    <strong>Dimensiones:</strong> 384<br>
+                    <strong>Base:</strong> MiniLM (Inglés)<br>
+                    <strong>Dataset de Entrenamiento:</strong> 1 Billón (1B) de pares de frases<br>
+                    <strong>Nota:</strong> Como solo sabe inglés, las palabras en español las ve extrañas y genera agrupaciones curiosas.
+                `;
             }
             
             // Limpiar análisis actual
