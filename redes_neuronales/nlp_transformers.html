@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mecanismo de Auto-Atención (Transformers)</title>
+    <style>
+        :root {
+            --color-query: #ef4444;
+            --color-key: #eab308;
+            --color-value: #22c55e;
+            --color-output: #8b5cf6;
+            --color-bg: #f8fafc;
+            --color-border: #e5e7eb;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--color-bg);
+            color: #334155;
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 20px;
+            position: relative;
+        }
+
+        .back-link {
+            position: absolute;
+            top: -20px;
+            left: 20px;
+            color: #334155;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+        .back-link:hover { color: #2563eb; }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-top: 30px;
+        }
+
+        h2 { margin-top: 0; color: #0f172a; }
+
+        .explanation {
+            background: #e0f2fe;
+            border-left: 4px solid #0ea5e9;
+            padding: 15px;
+            font-size: 0.95rem;
+            border-radius: 0 8px 8px 0;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        .phrase-container {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 20px;
+            border: 2px dashed var(--color-border);
+            border-radius: 8px;
+            justify-content: center;
+        }
+
+        .word {
+            padding: 10px 20px;
+            background: white;
+            border: 2px solid var(--color-border);
+            border-radius: 8px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .word:hover { border-color: #cbd5e1; transform: translateY(-2px); }
+
+        .word.active {
+            background-color: var(--color-query);
+            color: white;
+            border-color: var(--color-query);
+            font-weight: bold;
+            transform: scale(1.05);
+        }
+
+        .viz-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .box {
+            background: #f1f5f9;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            display: flex;
+            flex-direction: column;
+        }
+        .box h3 { margin-top: 0; font-size: 1rem; color: #475569; text-align: center; margin-bottom: 5px; }
+        .box p.subtitle { font-size: 0.75rem; text-align: center; color: #64748b; margin-top: 0; margin-bottom: 15px; }
+
+        .vector-row {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 5px;
+            align-items: center;
+        }
+        .vector-label {
+            width: 70px;
+            font-weight: bold;
+            font-size: 0.8rem;
+            color: #64748b;
+            text-align: right;
+            padding-right: 10px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .cell {
+            flex: 1;
+            padding: 5px;
+            background: white;
+            border: 1px solid #cbd5e1;
+            text-align: center;
+            font-family: monospace;
+            font-size: 0.85rem;
+            border-radius: 4px;
+            color: #334155;
+            transition: all 0.3s ease;
+        }
+
+        .cell.highlight {
+            background-color: #fef08a;
+            border-color: #eab308;
+            font-weight: bold;
+        }
+
+        .score-val {
+            width: 50px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            text-align: right;
+            font-weight: bold;
+            color: #0f172a;
+        }
+
+        .attn-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+            gap: 10px;
+        }
+        .attn-bar-bg {
+            flex: 1;
+            background: #e2e8f0;
+            height: 16px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .attn-bar-fill {
+            height: 100%;
+            background: var(--color-output);
+            width: 0%;
+            transition: width 0.4s ease;
+        }
+        
+        .math {
+            font-family: monospace;
+            background: rgba(255,255,255,0.5);
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+
+        .formula {
+            text-align: center;
+            font-family: monospace;
+            font-size: 1.1rem;
+            margin: 15px 0;
+            padding: 10px;
+            background: #f1f5f9;
+            border-radius: 8px;
+            color: #0f172a;
+        }
+    </style>
+</head>
+<body>
+
+    <a href="../index.html" class="back-link">
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+        </svg>
+        Volver al Menú
+    </a>
+
+    <div class="card">
+        <h2>Auto-Atención en Transformadores (Self-Attention)</h2>
+        
+        <div class="explanation">
+            La <strong>Auto-Atención</strong> es el corazón de modelos como GPT o BERT. Permite que cada palabra observe a las demás en la frase para entender su propio contexto. <br>
+            Haz clic en una palabra para convertirla en el <strong>Query (Consulta)</strong>. Esta consulta se comparará con los <strong>Keys (Claves)</strong> de todas las palabras. El resultado define qué porcentaje de atención se presta a cada palabra, mezclando sus <strong>Values (Valores)</strong> en el vector final.
+        </div>
+
+        <div class="formula">
+            Attention(Q, K, V) = softmax(Q · K<sup>T</sup>) · V
+        </div>
+
+        <div class="phrase-container" id="phrase"></div>
+
+        <div class="viz-container">
+            <!-- Paso 1: Query -->
+            <div class="box" style="border-color: #fca5a5;">
+                <h3 style="color: var(--color-query);">1. Vector Query (Q)</h3>
+                <p class="subtitle">¿Qué busca la palabra seleccionada?</p>
+                <div id="qVector"></div>
+            </div>
+            
+            <!-- Paso 2: Keys y Dot Product -->
+            <div class="box" style="border-color: #fde047;">
+                <h3 style="color: var(--color-key);">2. Vectores Key (K) & Similitud</h3>
+                <p class="subtitle">Similitud = Producto Punto (Q · K)</p>
+                <div id="kMatrix"></div>
+            </div>
+
+            <!-- Paso 3: Softmax -->
+            <div class="box" style="border-color: #c4b5fd;">
+                <h3 style="color: var(--color-output);">3. Pesos Softmax</h3>
+                <p class="subtitle">Normalizando a porcentajes (0 a 100%)</p>
+                <div id="attnWeights"></div>
+            </div>
+
+            <!-- Paso 4: Values y Salida -->
+            <div class="box" style="border-color: #86efac;">
+                <h3 style="color: var(--color-value);">4. Vectores Value (V) & Mezcla Final</h3>
+                <p class="subtitle">Salida = Suma ponderada de los Valores</p>
+                <div id="vMatrix"></div>
+                <hr style="border: 0; border-top: 1px dashed #94a3b8; margin: 15px 0;">
+                <h3 style="color: #334155; font-size: 0.95rem; margin-bottom:5px;">Contexto Final</h3>
+                <p class="subtitle" style="margin-bottom: 5px;">Nueva representación enriquecida</p>
+                <div id="outVector"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Datos de juguete para 4 palabras
+        const tokens = ["El", "banco", "del", "río"];
+        const dim = 3;
+
+        // Matrices Q, K, V (ficticias pero con propósito didáctico)
+        // Hacemos que "banco" atienda a "río"
+        const Q = [
+            [0.1, 0.0, 0.2], // el
+            [0.8, 0.1, 0.9], // banco (busca agua/naturaleza)
+            [0.0, 0.1, 0.0], // del
+            [0.9, 0.8, 0.1]  // río
+        ];
+        
+        const K = [
+            [0.2, 0.1, 0.1], // el
+            [0.5, 0.1, 0.1], // banco
+            [0.1, 0.2, 0.1], // del
+            [0.8, 0.2, 0.9]  // río (tiene la clave de agua/naturaleza)
+        ];
+
+        const V = [
+            [1.0, 0.0, 0.0], // el
+            [0.0, 1.0, 0.0], // banco
+            [0.0, 0.0, 1.0], // del
+            [0.5, 0.5, 0.5]  // río
+        ];
+
+        let activeIndex = 1; // "banco" por defecto
+
+        const phraseDiv = document.getElementById('phrase');
+        const qVectorDiv = document.getElementById('qVector');
+        const kMatrixDiv = document.getElementById('kMatrix');
+        const attnWeightsDiv = document.getElementById('attnWeights');
+        const vMatrixDiv = document.getElementById('vMatrix');
+        const outVectorDiv = document.getElementById('outVector');
+
+        function softmax(arr) {
+            const max = Math.max(...arr);
+            const exp = arr.map(x => Math.exp(x - max)); // Estabilidad numérica
+            const sum = exp.reduce((a, b) => a + b, 0);
+            return exp.map(x => x / sum);
+        }
+
+        function dotProduct(v1, v2) {
+            return v1.reduce((sum, val, i) => sum + val * v2[i], 0);
+        }
+
+        function render() {
+            // Render Phrase
+            phraseDiv.innerHTML = '';
+            tokens.forEach((word, i) => {
+                const el = document.createElement('div');
+                el.className = `word ${i === activeIndex ? 'active' : ''}`;
+                el.textContent = word;
+                el.onclick = () => {
+                    activeIndex = i;
+                    render();
+                };
+                phraseDiv.appendChild(el);
+            });
+
+            // 1. Render Q Vector
+            qVectorDiv.innerHTML = '';
+            const qRow = document.createElement('div');
+            qRow.className = 'vector-row';
+            qRow.innerHTML = `<div class="vector-label" style="color:var(--color-query)">${tokens[activeIndex]}</div>`;
+            Q[activeIndex].forEach(val => {
+                qRow.innerHTML += `<div class="cell" style="border-color:var(--color-query)">${val.toFixed(2)}</div>`;
+            });
+            qVectorDiv.appendChild(qRow);
+
+            // Calculate Scores and Softmax
+            const scores = tokens.map((_, i) => dotProduct(Q[activeIndex], K[i]));
+            const weights = softmax(scores);
+
+            // 2. Render K Matrix & Dot Product
+            kMatrixDiv.innerHTML = '';
+            tokens.forEach((word, i) => {
+                const row = document.createElement('div');
+                row.className = 'vector-row';
+                let cells = `<div class="vector-label">${word}</div>`;
+                K[i].forEach(val => {
+                    cells += `<div class="cell">${val.toFixed(2)}</div>`;
+                });
+                cells += `<div class="score-val" style="color:var(--color-key)">${scores[i].toFixed(2)}</div>`;
+                row.innerHTML = cells;
+                kMatrixDiv.appendChild(row);
+            });
+
+            // 3. Render Attention Weights (Softmax)
+            attnWeightsDiv.innerHTML = '';
+            tokens.forEach((word, i) => {
+                const percent = (weights[i] * 100).toFixed(1);
+                const row = document.createElement('div');
+                row.className = 'attn-row';
+                row.innerHTML = `
+                    <div class="vector-label">${word}</div>
+                    <div class="attn-bar-bg">
+                        <div class="attn-bar-fill" style="width: ${percent}%;"></div>
+                    </div>
+                    <div class="score-val" style="color:var(--color-output)">${percent}%</div>
+                `;
+                attnWeightsDiv.appendChild(row);
+            });
+
+            // 4. Render V Matrix & Compute Final Output
+            vMatrixDiv.innerHTML = '';
+            let finalVector = [0, 0, 0];
+            tokens.forEach((word, i) => {
+                const row = document.createElement('div');
+                row.className = 'vector-row';
+                const opacity = Math.max(0.2, weights[i]); // Para atenuar visualmente los que importan menos
+                let cells = `<div class="vector-label" style="opacity: ${opacity}">${word}</div>`;
+                
+                V[i].forEach((val, d) => {
+                    // Sumar al vector final
+                    finalVector[d] += val * weights[i];
+                    // Si el peso es alto, resaltar la celda
+                    const isHigh = weights[i] > 0.3;
+                    cells += `<div class="cell ${isHigh ? 'highlight' : ''}" style="opacity: ${opacity}">${val.toFixed(2)}</div>`;
+                });
+                // Mostrar el multiplicador (peso)
+                cells += `<div class="score-val" style="font-size:0.7rem; opacity:${opacity}">× ${(weights[i]).toFixed(2)}</div>`;
+                row.innerHTML = cells;
+                vMatrixDiv.appendChild(row);
+            });
+
+            // Render Output Vector
+            outVectorDiv.innerHTML = '';
+            const outRow = document.createElement('div');
+            outRow.className = 'vector-row';
+            outRow.innerHTML = `<div class="vector-label" style="color:#0f172a">Salida</div>`;
+            finalVector.forEach(val => {
+                outRow.innerHTML += `<div class="cell" style="background:#f8fafc; border:2px solid #94a3b8; font-weight:bold;">${val.toFixed(3)}</div>`;
+            });
+            outVectorDiv.appendChild(outRow);
+        }
+
+        // Init
+        render();
+    </script>
+</body>
+</html>
