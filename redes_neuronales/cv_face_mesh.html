@@ -236,6 +236,8 @@
 
             return new Promise((resolve) => {
                 video.onloadedmetadata = () => {
+                    video.width = video.videoWidth;
+                    video.height = video.videoHeight;
                     resolve(video);
                 };
             });
