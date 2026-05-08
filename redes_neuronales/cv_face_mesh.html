@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Malla Facial y Emociones - TF.js</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    
+    <!-- TensorFlow.js and dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection"></script>
+    
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --neon-color: #ff00ff; /* Magenta neon for Face Mesh */
+            --bg-color: #121212;
+            --text-color: #ffffff;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            overflow: hidden;
+        }
+
+        header {
+            position: absolute;
+            top: 0;
+            width: 100%;
+            background: rgba(44, 62, 80, 0.7);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 15px 20px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            z-index: 10;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-sizing: border-box;
+        }
+
+        .back-btn {
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 15px;
+            border-radius: 20px;
+            transition: background 0.3s;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.4);
+            box-shadow: 0 0 10px var(--neon-color);
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 1.5em;
+            text-shadow: 0 0 5px var(--neon-color);
+        }
+
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #000;
+        }
+
+        video {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1); /* Mirror effect is natural for face apps */
+        }
+
+        canvas {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 5;
+            pointer-events: none;
+            transform: scaleX(-1); /* Must match video */
+        }
+
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 20;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px 40px;
+            border-radius: 15px;
+            border: 1px solid var(--neon-color);
+            box-shadow: 0 0 20px var(--neon-color);
+            text-align: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .spinner {
+            border: 4px solid rgba(255,255,255,0.1);
+            border-top: 4px solid var(--neon-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .ar-hud {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            padding: 15px 25px;
+            border-left: 3px solid var(--neon-color);
+            font-size: 1em;
+            border-radius: 0 10px 10px 0;
+        }
+
+        .ar-hud p {
+            margin: 5px 0;
+            font-family: monospace;
+            color: #ddd;
+        }
+
+        .ar-hud span {
+            color: var(--neon-color);
+            font-weight: bold;
+        }
+
+        #emotion-display {
+            font-size: 1.8em;
+            color: #fff;
+            text-shadow: 0 0 10px var(--neon-color);
+            margin-top: 10px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <a href="../index.html" class="back-btn">← Volver</a>
+        <h1><i class="fas fa-smile"></i> Malla Facial y Emociones</h1>
+        <div style="width: 80px;"></div>
+    </header>
+
+    <div id="container">
+        <video id="webcam" autoplay playsinline muted></video>
+        <canvas id="canvas"></canvas>
+        
+        <div id="loading">
+            <div class="spinner"></div>
+            <h2 id="status-text">Cargando Modelo Neural...</h2>
+            <p style="font-size: 0.8em; color: #ccc;">Puede tomar unos segundos (aprox 3MB)</p>
+        </div>
+
+        <div class="ar-hud">
+            <p>FPS: <span id="hud-fps">0</span></p>
+            <p>ESTADO: <span id="hud-status">INICIALIZANDO</span></p>
+            <hr style="border-color: rgba(255,0,255,0.3); margin: 10px 0;">
+            <p>EMOCIÓN DETECTADA:</p>
+            <div id="emotion-display">NEUTRAL 😐</div>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('webcam');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const loadingDiv = document.getElementById('loading');
+        const statusText = document.getElementById('status-text');
+        
+        const hudStatus = document.getElementById('hud-status');
+        const hudFps = document.getElementById('hud-fps');
+        const emotionDisplay = document.getElementById('emotion-display');
+
+        let detector;
+        let frameCount = 0;
+        let lastFpsTime = 0;
+
+        // Geometría Facial - Índices de MediaPipe Face Mesh
+        const POINTS = {
+            LEFT_MOUTH: 61,
+            RIGHT_MOUTH: 291,
+            TOP_LIP: 13,
+            BOTTOM_LIP: 14,
+            LEFT_EYE_TOP: 159,
+            LEFT_EYE_BOTTOM: 145,
+            RIGHT_EYE_TOP: 386,
+            RIGHT_EYE_BOTTOM: 374,
+            FACE_LEFT: 234,
+            FACE_RIGHT: 454,
+            FOREHEAD: 10,
+            CHIN: 152
+        };
+
+        // Euclidean distance
+        function distance(p1, p2) {
+            return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
+        }
+
+        async function setupCamera() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                throw new Error('La API del navegador no soporta cámara web.');
+            }
+            statusText.innerText = "Accediendo a la cámara...";
+            const stream = await navigator.mediaDevices.getUserMedia({
+                'audio': false,
+                'video': { facingMode: 'user' } // Front camera for face stuff
+            });
+            video.srcObject = stream;
+
+            return new Promise((resolve) => {
+                video.onloadedmetadata = () => {
+                    resolve(video);
+                };
+            });
+        }
+
+        async function detectFrame() {
+            if (video.readyState < 2) {
+                requestAnimationFrame(detectFrame);
+                return;
+            }
+
+            const videoWidth = video.videoWidth;
+            const videoHeight = video.videoHeight;
+            
+            if (canvas.width !== videoWidth || canvas.height !== videoHeight) {
+                canvas.width = videoWidth;
+                canvas.height = videoHeight;
+                canvas.style.width = video.clientWidth + "px";
+                canvas.style.height = video.clientHeight + "px";
+            }
+
+            // Estimate faces
+            const faces = await detector.estimateFaces(video, {flipHorizontal: false});
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (faces.length > 0) {
+                const keypoints = faces[0].keypoints;
+
+                // 1. Draw Mesh Points
+                ctx.fillStyle = 'rgba(255, 0, 255, 0.8)';
+                for (let i = 0; i < keypoints.length; i++) {
+                    const x = keypoints[i].x;
+                    const y = keypoints[i].y;
+                    ctx.beginPath();
+                    ctx.arc(x, y, 1.5, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+
+                // 2. Emotion Heuristics
+                // Get necessary points
+                const ptLeftMouth = keypoints[POINTS.LEFT_MOUTH];
+                const ptRightMouth = keypoints[POINTS.RIGHT_MOUTH];
+                const ptTopLip = keypoints[POINTS.TOP_LIP];
+                const ptBottomLip = keypoints[POINTS.BOTTOM_LIP];
+                const ptFaceLeft = keypoints[POINTS.FACE_LEFT];
+                const ptFaceRight = keypoints[POINTS.FACE_RIGHT];
+                const ptForehead = keypoints[POINTS.FOREHEAD];
+                const ptChin = keypoints[POINTS.CHIN];
+
+                // Calculate dimensions
+                const faceWidth = distance(ptFaceLeft, ptFaceRight);
+                const faceHeight = distance(ptForehead, ptChin);
+                
+                const mouthWidth = distance(ptLeftMouth, ptRightMouth);
+                const mouthHeight = distance(ptTopLip, ptBottomLip);
+
+                // Ratios
+                const smileRatio = mouthWidth / faceWidth;
+                const mouthOpenRatio = mouthHeight / faceHeight;
+
+                // Determine Emotion
+                let emotion = "NEUTRAL 😐";
+                let color = "#ffffff";
+
+                if (mouthOpenRatio > 0.12) {
+                    emotion = "SORPRESA 😲";
+                    color = "#f1c40f"; // Yellow
+                } else if (smileRatio > 0.43) {
+                    emotion = "FELIZ 😄";
+                    color = "#2ecc71"; // Green
+                }
+
+                emotionDisplay.innerText = emotion;
+                emotionDisplay.style.color = color;
+                emotionDisplay.style.textShadow = `0 0 15px ${color}`;
+
+            } else {
+                emotionDisplay.innerText = "ROSTRO NO DETECTADO";
+                emotionDisplay.style.color = "#e74c3c";
+                emotionDisplay.style.textShadow = "none";
+            }
+
+            // Calculate FPS
+            const now = performance.now();
+            frameCount++;
+            if (now - lastFpsTime >= 1000) {
+                hudFps.innerText = frameCount;
+                frameCount = 0;
+                lastFpsTime = now;
+            }
+
+            requestAnimationFrame(detectFrame);
+        }
+
+        async function main() {
+            try {
+                // Load Model
+                const model = faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh;
+                const detectorConfig = {
+                    runtime: 'tfjs', 
+                    refineLandmarks: true,
+                    maxFaces: 1
+                };
+                detector = await faceLandmarksDetection.createDetector(model, detectorConfig);
+                console.log("Model loaded.");
+                
+                await setupCamera();
+                video.play();
+                console.log("Camera ready.");
+                
+                loadingDiv.style.display = 'none';
+                hudStatus.innerText = "ONLINE";
+                
+                lastFpsTime = performance.now();
+                detectFrame();
+
+            } catch (error) {
+                console.error(error);
+                statusText.innerText = "Error: " + error.message;
+                document.querySelector('.spinner').style.display = 'none';
+                hudStatus.innerText = "ERROR";
+                hudStatus.style.color = "red";
+            }
+        }
+
+        // Start
+        main();
+    </script>
+</body>
+</html>
