@@ -137,29 +137,53 @@
             padding: 20px;
             background-color: transparent;
             text-align: center;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
         }
 
         .btn {
-            display: inline-block;
-            padding: 12px 30px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 10px 20px;
             background-color: var(--primary-color);
             color: white;
             text-decoration: none;
             border-radius: 30px;
             font-weight: 600;
+            font-size: 0.9em;
             transition: var(--transition);
-            border: none;
+            border: 2px solid var(--primary-color);
             cursor: pointer;
         }
 
         .btn:hover {
             background-color: #2980b9;
+            border-color: #2980b9;
             box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        }
+
+        .btn-slide {
+            background-color: #ffffff;
+            color: var(--primary-color);
+            border: 2px solid var(--primary-color);
+        }
+
+        .btn-slide:hover {
+            background-color: var(--primary-color);
+            color: white;
+            box-shadow: 0 5px 15px rgba(44, 62, 80, 0.3);
         }
 
         /* Botón deshabilitado para futuros proyectos */
         .btn.disabled {
             background-color: #bdc3c7;
+            border-color: #bdc3c7;
+            color: white;
             cursor: not-allowed;
             box-shadow: none;
         }
@@ -199,6 +223,18 @@
 
         .badge-intro {
             background-color: #95a5a6;
+        }
+
+        .badge-slide {
+            background-color: #003576;
+        }
+
+        .card-icon-header.icon-slide {
+            background: #e0f2fe;
+        }
+
+        .card-icon-header.icon-slide svg {
+            fill: #0284c7;
         }
 
         .card-icon-header.icon-blue {
@@ -301,24 +337,40 @@
             <!-- Semana 1 -->
             <h2 class="section-title">Semana 1: Introducción al Machine Learning</h2>
             <div class="card">
-                <div class="card-icon-header icon-gray">
+                <div class="card-icon-header icon-slide">
                     <svg viewBox="0 0 24 24">
-                        <path
-                            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zM7 10h2v7H7zm4-3h2v10h-2zm4 6h2v4h-2z"/>
                     </svg>
                 </div>
                 <div class="card-body">
-                    <span class="badge badge-intro">Intro</span>
-                    <h3 class="card-title">Conceptos Básicos</h3>
-                    <p class="card-text">Definición de ML, Tipos de aprendizaje, y configuración del entorno.</p>
+                    <span class="badge badge-slide">Diapositivas</span>
+                    <h3 class="card-title">Introducción a la IA</h3>
+                    <p class="card-text">Conceptos básicos, aprendizaje supervisado vs no supervisado y fundamentación del curso.</p>
                 </div>
                 <div class="card-footer">
-                    <a href="presentaciones/intro_ml/intro_ml.html" class="btn" target="_blank">Ver Presentación</a>
+                    <a href="slides/intro_ia.html" class="btn btn-slide" target="_blank">Ver Presentación</a>
                 </div>
             </div>
 
             <!-- Semana 2 -->
             <h2 class="section-title">Semana 2: Modelos Lineales (Tabular Numérico)</h2>
+
+            <!-- Card Presentación Modelos Lineales -->
+            <div class="card">
+                <div class="card-icon-header icon-slide">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zM7 10h2v7H7zm4-3h2v10h-2zm4 6h2v4h-2z"/>
+                    </svg>
+                </div>
+                <div class="card-body">
+                    <span class="badge badge-slide">Diapositivas</span>
+                    <h3 class="card-title">Modelos Lineales</h3>
+                    <p class="card-text">Presentación completa sobre Regresión Lineal, Regresión Logística y Descenso de Gradiente.</p>
+                </div>
+                <div class="card-footer">
+                    <a href="slides/modelos_lineales.html" class="btn btn-slide" target="_blank">Ver Presentación</a>
+                </div>
+            </div>
 
             <!-- MSE Card -->
             <div class="card">
@@ -331,8 +383,7 @@
                 <div class="card-body">
                     <span class="badge badge-tabular">Tabular</span>
                     <h3 class="card-title">Regresión Lineal: MSE</h3>
-                    <p class="card-text">Calculadora interactiva del Error Cuadrático Medio con visualización en tiempo
-                        real.</p>
+                    <p class="card-text">Calculadora interactiva del Error Cuadrático Medio con visualización en tiempo real.</p>
                 </div>
                 <div class="card-footer">
                     <a href="regresion_lineal/mean_squared_error.html" class="btn">Abrir Herramienta</a>
@@ -349,8 +400,7 @@
                 <div class="card-body">
                     <span class="badge badge-tabular">Tabular</span>
                     <h3 class="card-title">Importancia de Features</h3>
-                    <p class="card-text">Simulación California Housing. Visualiza pesos de características en el precio.
-                    </p>
+                    <p class="card-text">Simulación California Housing. Visualiza pesos de características en el precio.</p>
                 </div>
                 <div class="card-footer">
                     <a href="regresion_lineal/feature_importance.html" class="btn">Abrir Herramienta</a>
@@ -379,6 +429,24 @@
 
             <!-- Semana 3 -->
             <h2 class="section-title">Semana 3: SVM (No Lineal Numérico)</h2>
+
+            <!-- Card Presentación SVM -->
+            <div class="card">
+                <div class="card-icon-header icon-slide">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zM7 10h2v7H7zm4-3h2v10h-2zm4 6h2v4h-2z"/>
+                    </svg>
+                </div>
+                <div class="card-body">
+                    <span class="badge badge-slide">Diapositivas</span>
+                    <h3 class="card-title">Máquinas de Soporte Vectorial</h3>
+                    <p class="card-text">Clasificación con margen máximo, truco del kernel y vectores de soporte.</p>
+                </div>
+                <div class="card-footer">
+                    <a href="slides/svm.html" class="btn btn-slide" target="_blank">Ver Presentación</a>
+                </div>
+            </div>
+
             <div class="card">
                 <div class="card-icon-header icon-orange">
                     <svg viewBox="0 0 24 24">
@@ -433,20 +501,36 @@
 
             <!-- Semana 4-5 -->
             <h2 class="section-title">Semana 4-5: Árboles y Ensambles</h2>
+
             <div class="card">
-                <div class="card-icon-header icon-green">
+                <div class="card-icon-header icon-slide">
                     <svg viewBox="0 0 24 24">
-                        <path
-                            d="M22,11V3h-7v3H9V3H2v8h7V8h2v10h4v3h7v-8h-7v3h-2V8h2v3H22z M7,9H4V5h3V9z M17,15h3v4h-3V15z M17,5h3v4h-3V5z" />
+                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zM7 10h2v7H7zm4-3h2v10h-2zm4 6h2v4h-2z"/>
                     </svg>
                 </div>
                 <div class="card-body">
-                    <span class="badge badge-tabular">Categórico</span>
+                    <span class="badge badge-slide">Diapositivas</span>
                     <h3 class="card-title">Árboles de Decisión</h3>
-                    <p class="card-text">Modelos interpretables basados en reglas if-then.</p>
+                    <p class="card-text">Modelos interpretables basados en reglas if-then, criterios de división y poda.</p>
                 </div>
                 <div class="card-footer">
-                    <span class="btn disabled">Pendiente</span>
+                    <a href="slides/arboles_decision.html" class="btn btn-slide" target="_blank">Ver Presentación</a>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-icon-header icon-slide">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zM7 10h2v7H7zm4-3h2v10h-2zm4 6h2v4h-2z"/>
+                    </svg>
+                </div>
+                <div class="card-body">
+                    <span class="badge badge-slide">Diapositivas</span>
+                    <h3 class="card-title">Métodos de Ensamble</h3>
+                    <p class="card-text">Combinación de modelos débiles: Bagging, Random Forests y Boosting.</p>
+                </div>
+                <div class="card-footer">
+                    <a href="slides/ensambles.html" class="btn btn-slide" target="_blank">Ver Presentación</a>
                 </div>
             </div>
 
@@ -469,6 +553,23 @@
 
             <!-- Semana 7-8 -->
             <h2 class="section-title">Semana 7-8: Aprendizaje No Supervisado</h2>
+
+            <div class="card">
+                <div class="card-icon-header icon-slide">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zM7 10h2v7H7zm4-3h2v10h-2zm4 6h2v4h-2z"/>
+                    </svg>
+                </div>
+                <div class="card-body">
+                    <span class="badge badge-slide">Diapositivas</span>
+                    <h3 class="card-title">Clustering y Agrupamiento</h3>
+                    <p class="card-text">K-Means, agrupamiento jerárquico, métricas de evaluación y reducción dimensional.</p>
+                </div>
+                <div class="card-footer">
+                    <a href="slides/clustering.html" class="btn btn-slide" target="_blank">Ver Presentación</a>
+                </div>
+            </div>
+
             <div class="card">
                 <div class="card-icon-header icon-purple">
                     <svg viewBox="0 0 24 24">
@@ -479,8 +580,7 @@
                 <div class="card-body">
                     <span class="badge badge-tabular" style="background-color: #8e44ad;">Reducción. Dimensión</span>
                     <h3 class="card-title">PCA</h3>
-                    <p class="card-text">Visualización interactiva de Componentes Principales y reducción de 2D a 1D.
-                    </p>
+                    <p class="card-text">Visualización interactiva de Componentes Principales y reducción de 2D a 1D.</p>
                 </div>
                 <div class="card-footer">
                     <a href="reduccion_dimension/pca.html" class="btn">Abrir Herramienta</a>
@@ -505,8 +605,40 @@
             </div>
 
             <!-- Semana 11-14 -->
-            <h2 class="section-title">Semana 11-14: Redes Neuronales y Aplicaciones</h2>
+            <h2 class="section-title">Fundamentos de Redes Neuronales</h2>
             
+            <div class="card">
+                <div class="card-icon-header icon-slide">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zM7 10h2v7H7zm4-3h2v10h-2zm4 6h2v4h-2z"/>
+                    </svg>
+                </div>
+                <div class="card-body">
+                    <span class="badge badge-slide">Diapositivas</span>
+                    <h3 class="card-title">Redes Neuronales</h3>
+                    <p class="card-text">Perceptrón multicapa, propagación hacia adelante (forward) y retropropagación (backpropagation).</p>
+                </div>
+                <div class="card-footer">
+                    <a href="slides/redes_neuronales.html" class="btn btn-slide" target="_blank">Ver Presentación</a>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-icon-header icon-slide">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zM7 10h2v7H7zm4-3h2v10h-2zm4 6h2v4h-2z"/>
+                    </svg>
+                </div>
+                <div class="card-body">
+                    <span class="badge badge-slide">Diapositivas</span>
+                    <h3 class="card-title">Aprendizaje Profundo</h3>
+                    <p class="card-text">Fundamentos del Deep Learning, funciones de activación, optimizadores y regularización.</p>
+                </div>
+                <div class="card-footer">
+                    <a href="slides/aprendizaje_profundo.html" class="btn btn-slide" target="_blank">Ver Presentación</a>
+                </div>
+            </div>
+
             <div class="card">
                 <div class="card-icon-header icon-gray" style="background: #ebf5fb;">
                     <svg viewBox="0 0 24 24" style="fill: #3498db;">
@@ -520,6 +652,25 @@
                 </div>
                 <div class="card-footer">
                     <a href="redes_neuronales/backpropagation.html" class="btn">Abrir Herramienta</a>
+                </div>
+            </div>
+
+            <!-- Procesamiento de Lenguaje Natural -->
+            <h2 class="section-title">Procesamiento de Lenguaje Natural (NLP)</h2>
+
+            <div class="card">
+                <div class="card-icon-header icon-slide">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zM7 10h2v7H7zm4-3h2v10h-2zm4 6h2v4h-2z"/>
+                    </svg>
+                </div>
+                <div class="card-body">
+                    <span class="badge badge-slide">Diapositivas</span>
+                    <h3 class="card-title">Modelos de Lenguaje Grandes (LLMs)</h3>
+                    <p class="card-text">Arquitectura Transformer, mecanísmos de atención, embeddings y Procesamiento del Lenguaje Natural.</p>
+                </div>
+                <div class="card-footer">
+                    <a href="slides/llms.html" class="btn btn-slide" target="_blank">Ver Presentación</a>
                 </div>
             </div>
 
@@ -571,6 +722,25 @@
                 </div>
             </div>
 
+            <!-- Procesamiento de Imágenes -->
+            <h2 class="section-title">Procesamiento de Imágenes (CV)</h2>
+
+            <div class="card">
+                <div class="card-icon-header icon-slide">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zM7 10h2v7H7zm4-3h2v10h-2zm4 6h2v4h-2z"/>
+                    </svg>
+                </div>
+                <div class="card-body">
+                    <span class="badge badge-slide">Diapositivas</span>
+                    <h3 class="card-title">Redes Convolucionales (CNN)</h3>
+                    <p class="card-text">Procesamiento de imágenes mediante capas convolucionales, pooling y arquitecturas CNN.</p>
+                </div>
+                <div class="card-footer">
+                    <a href="slides/cnn.html" class="btn btn-slide" target="_blank">Ver Presentación</a>
+                </div>
+            </div>
+
             <div class="card">
                 <div class="card-icon-header icon-purple">
                     <svg viewBox="0 0 24 24">
@@ -601,6 +771,25 @@
                 </div>
                 <div class="card-footer">
                     <a href="redes_neuronales/cnn_jerarquia.html" class="btn">Abrir Herramienta</a>
+                </div>
+            </div>
+
+            <!-- Series de Tiempo -->
+            <h2 class="section-title">Series de Tiempo</h2>
+
+            <div class="card">
+                <div class="card-icon-header icon-orange" style="background: #fdf2e9;">
+                    <svg viewBox="0 0 24 24" style="fill: #e67e22;">
+                        <path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/>
+                    </svg>
+                </div>
+                <div class="card-body">
+                    <span class="badge badge-tabular" style="background-color: #d35400;">Interactividad</span>
+                    <h3 class="card-title">Predicción Diaria</h3>
+                    <p class="card-text">Simulación de Temperatura en Colombia: estacionalidad y Fenómeno del Niño/Niña.</p>
+                </div>
+                <div class="card-footer">
+                    <a href="redes_neuronales/time_series_colombia.html" class="btn">Abrir Simulador</a>
                 </div>
             </div>
 
