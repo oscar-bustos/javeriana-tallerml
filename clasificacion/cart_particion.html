@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Árboles de Decisión: Simulador CART</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2ecc71;
+            --secondary-color: #2c3e50;
+            --accent-color: #27ae60;
+            --bg-light: #f4f7f6;
+            --card-bg: #ffffff;
+            --shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-light);
+            padding: 20px;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: var(--secondary-color);
+        }
+        .container {
+            background-color: var(--card-bg);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: var(--shadow);
+            width: 95%;
+            max-width: 1200px;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        h1 {
+            margin: 0;
+            color: var(--secondary-color);
+            font-size: 1.8em;
+        }
+        p.subtitle {
+            color: #7f8c8d;
+            font-size: 0.95em;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: var(--secondary-color);
+            color: white;
+            text-decoration: none;
+            border-radius: 30px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        .btn:hover {
+            background-color: #34495e;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+        .btn-action {
+            background-color: #3498db;
+            width: 100%;
+            margin-top: 15px;
+        }
+        .btn-action:hover {
+            background-color: #2980b9;
+        }
+        .main-layout {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            margin-top: 15px;
+        }
+        @media (max-width: 900px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+        .controls-panel {
+            background-color: #eafaf1;
+            padding: 20px;
+            border-radius: 10px;
+            height: fit-content;
+            border: 1px solid #d5f5e3;
+        }
+        .control-group {
+            margin-bottom: 15px;
+            background: white;
+            padding: 12px 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+            font-weight: 600;
+            color: var(--secondary-color);
+        }
+        .control-group select, .control-group input[type=range] {
+            width: 100%;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 5px;
+            font-family: inherit;
+        }
+        .metrics-box {
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .metrics-box h4 {
+            margin: 0 0 5px 0;
+            font-size: 0.95em;
+        }
+        .metrics-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            font-family: monospace;
+        }
+        .val-display {
+            float: right;
+            color: var(--primary-color);
+            font-family: monospace;
+            font-weight: bold;
+        }
+        .chart-container {
+            background: white;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid #eee;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../index.html" class="btn">← Volver al Menú</a>
+        <header>
+            <h1>🌳 Simulador CART: Sé el Algoritmo</h1>
+            <p class="subtitle">Dataset "Impago (Default)": Elige la variable y ajusta el punto de corte manualmente para intentar minimizar la impureza Gini.</p>
+        </header>
+
+        <div class="main-layout">
+            <div class="left-panel">
+                <div class="controls-panel">
+                    <h3 style="margin-top:0; color:var(--accent-color);">1. Configura el Corte</h3>
+                    
+                    <div class="control-group">
+                        <label>Variable a dividir</label>
+                        <select id="sel_variable" onchange="cambiarVariable()">
+                            <option value="balance">Balance (Saldo deuda)</option>
+                            <option value="income">Income (Ingresos)</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label>Punto de Corte <span id="val_corte_display" class="val-display">0</span></label>
+                        <input type="range" id="in_umbral" min="0" max="100" step="1" value="50" oninput="actualizarUmbral()">
+                    </div>
+
+                    <h3 style="margin-top:20px; color:var(--accent-color);">2. Evalúa tu Partición</h3>
+                    <div class="metrics-box">
+                        <h4>Tu Impureza Gini</h4>
+                        <div class="metrics-value" id="val_gini">0.0000</div>
+                    </div>
+
+                    <button class="btn btn-action" onclick="revelarOptimoCART()">🤖 Revelar Óptimo CART</button>
+                    
+                    <div class="metrics-box" style="background: linear-gradient(135deg, #34495e, #2c3e50); margin-top:15px; display:none;" id="box_optimo">
+                        <h4>Gini Mínimo (CART)</h4>
+                        <div class="metrics-value" id="val_gini_optimo">0.0000</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-container" id="chart" style="height: 550px;"></div>
+        </div>
+    </div>
+
+    <script>
+        let data = [];
+        let featureMin = 0;
+        let featureMax = 100;
+        let mejorCorteActual = 0;
+        let mejorGiniActual = 0;
+
+        function random() {
+            var x = Math.sin(seed++) * 10000;
+            return x - Math.floor(x);
+        }
+        
+        let seed = 42;
+        function seededRandomNormal(loc, scale) {
+            let u = 0, v = 0;
+            while(u === 0) u = random();
+            while(v === 0) v = random();
+            let num = Math.sqrt( -2.0 * Math.log( u ) ) * Math.cos( 2.0 * Math.PI * v );
+            return num * scale + loc;
+        }
+
+        function generarDatos() {
+            data = [];
+            // Simular dataset 'Default' (Impago)
+            // No Default (0): Balance bajo (~800), Income variable (~40000)
+            for(let i = 0; i < 250; i++) {
+                data.push({
+                    balance: Math.max(0, seededRandomNormal(800, 300)),
+                    income: Math.max(0, seededRandomNormal(40000, 15000)),
+                    label: 0
+                });
+            }
+            // Default (1): Balance alto (~1800), Income ligeramente más bajo (~30000)
+            for(let i = 0; i < 50; i++) {
+                data.push({
+                    balance: Math.max(0, seededRandomNormal(1900, 250)),
+                    income: Math.max(0, seededRandomNormal(30000, 10000)),
+                    label: 1
+                });
+            }
+        }
+
+        function impurezaGini(labels) {
+            if (labels.length === 0) return 0;
+            let sum = labels.reduce((a, b) => a + b, 0);
+            let p1 = sum / labels.length;
+            let p0 = 1 - p1;
+            return 1 - (p0 * p0 + p1 * p1);
+        }
+
+        function calcularGiniPonderado(labelsIzq, labelsDer) {
+            let nTotal = labelsIzq.length + labelsDer.length;
+            if (nTotal === 0) return 0;
+            let gIzq = impurezaGini(labelsIzq) * (labelsIzq.length / nTotal);
+            let gDer = impurezaGini(labelsDer) * (labelsDer.length / nTotal);
+            return gIzq + gDer;
+        }
+
+        function calcularOptimoCART(variable) {
+            let sortedData = [...data].sort((a, b) => a[variable] - b[variable]);
+            let mejorGini = Infinity;
+            let umbral = sortedData[0][variable];
+            
+            for(let i = 1; i < sortedData.length; i++) {
+                if (sortedData[i-1][variable] === sortedData[i][variable]) continue; // Evitar calcular en mismo valor
+                
+                let umbralCandidato = (sortedData[i-1][variable] + sortedData[i][variable]) / 2.0;
+                let labelsIzq = sortedData.slice(0, i).map(d => d.label);
+                let labelsDer = sortedData.slice(i).map(d => d.label);
+                let giniActual = calcularGiniPonderado(labelsIzq, labelsDer);
+                
+                if (giniActual < mejorGini) {
+                    mejorGini = giniActual;
+                    umbral = umbralCandidato;
+                }
+            }
+            return { gini: mejorGini, corte: umbral };
+        }
+
+        function cambiarVariable() {
+            document.getElementById('box_optimo').style.display = 'none';
+            let variable = document.getElementById('sel_variable').value;
+            
+            let vals = data.map(d => d[variable]);
+            featureMin = Math.floor(Math.min(...vals));
+            featureMax = Math.ceil(Math.max(...vals));
+            
+            let slider = document.getElementById('in_umbral');
+            slider.min = featureMin;
+            slider.max = featureMax;
+            slider.step = (featureMax - featureMin) / 200;
+            slider.value = (featureMin + featureMax) / 2;
+            
+            // Precalcular óptimo para cuando lo pidan
+            let optimo = calcularOptimoCART(variable);
+            mejorCorteActual = optimo.corte;
+            mejorGiniActual = optimo.gini;
+            
+            actualizarUmbral();
+        }
+
+        function actualizarUmbral() {
+            let umbral = parseFloat(document.getElementById('in_umbral').value);
+            let variable = document.getElementById('sel_variable').value;
+            
+            let formato = variable === 'income' ? '$' + umbral.toLocaleString('en-US', {maximumFractionDigits:0}) : umbral.toFixed(0);
+            document.getElementById('val_corte_display').innerText = formato;
+
+            let labelsIzq = data.filter(d => d[variable] <= umbral).map(d => d.label);
+            let labelsDer = data.filter(d => d[variable] > umbral).map(d => d.label);
+            let giniFinal = calcularGiniPonderado(labelsIzq, labelsDer);
+
+            document.getElementById('val_gini').innerText = giniFinal.toFixed(4);
+            graficar(umbral, variable);
+        }
+
+        function revelarOptimoCART() {
+            let slider = document.getElementById('in_umbral');
+            slider.value = mejorCorteActual;
+            actualizarUmbral();
+            
+            document.getElementById('val_gini_optimo').innerText = mejorGiniActual.toFixed(4);
+            document.getElementById('box_optimo').style.display = 'block';
+        }
+
+        function graficar(umbral, variable) {
+            let trace0 = {
+                x: data.filter(d => d.label === 0).map(d => d.balance),
+                y: data.filter(d => d.label === 0).map(d => d.income),
+                mode: 'markers',
+                type: 'scatter',
+                name: 'No Default (Sanos)',
+                marker: { size: 7, color: '#3498db', opacity: 0.6, line: {color: 'white', width: 1} }
+            };
+
+            let trace1 = {
+                x: data.filter(d => d.label === 1).map(d => d.balance),
+                y: data.filter(d => d.label === 1).map(d => d.income),
+                mode: 'markers',
+                type: 'scatter',
+                name: 'Default (Impago)',
+                marker: { size: 8, color: '#e74c3c', symbol: 'square', opacity: 0.8, line: {color: 'white', width: 1} }
+            };
+
+            // Dibujar la línea de corte (vertical u horizontal)
+            let lineX = [];
+            let lineY = [];
+            
+            if (variable === 'balance') {
+                lineX = [umbral, umbral];
+                lineY = [0, Math.max(...data.map(d=>d.income)) + 10000];
+            } else {
+                lineX = [0, Math.max(...data.map(d=>d.balance)) + 500];
+                lineY = [umbral, umbral];
+            }
+
+            let traceUmbral = {
+                x: lineX,
+                y: lineY,
+                mode: 'lines',
+                name: 'Tu Corte',
+                line: {
+                    color: '#2c3e50',
+                    width: 3,
+                    dash: 'dash'
+                }
+            };
+
+            let layout = {
+                title: 'Dataset: Balance vs Income',
+                xaxis: { title: 'Balance (Saldo)' },
+                yaxis: { title: 'Income (Ingresos)' },
+                margin: { t: 40, b: 40, l: 60, r: 20 },
+                legend: { x: 0.02, y: 0.98, bgcolor: 'rgba(255,255,255,0.8)' },
+                hovermode: 'closest'
+            };
+
+            Plotly.react('chart', [trace0, trace1, traceUmbral], layout);
+        }
+
+        window.onload = function() {
+            generarDatos();
+            cambiarVariable();
+        };
+
+        window.onresize = function() {
+            Plotly.Plots.resize('chart');
+        };
+    </script>
+</body>
+</html>
