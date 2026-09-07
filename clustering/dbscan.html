@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DBSCAN paso a paso</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #16a085;
+            --secondary-color: #2c3e50;
+            --accent-color: #1abc9c;
+            --bg-light: #f4f7f6;
+            --card-bg: #ffffff;
+            --shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: var(--bg-light);
+            color: var(--secondary-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 95%;
+            max-width: 1500px;
+            padding: 30px;
+            background: var(--card-bg);
+            border-radius: 15px;
+            box-shadow: var(--shadow);
+        }
+
+        header { text-align: center; margin-bottom: 20px; }
+        h1 { margin: 0; font-size: 1.8rem; }
+        .subtitle { color: #6b7b83; font-size: 0.95rem; }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 10px 20px;
+            margin-bottom: 10px;
+            border: 0;
+            border-radius: 30px;
+            background: var(--secondary-color);
+            color: white;
+            font: 600 0.9rem 'Poppins', sans-serif;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn:hover:not(:disabled) { transform: translateY(-2px); background: #34495e; }
+        .btn:disabled { cursor: not-allowed; background: #bdc3c7; box-shadow: none; }
+        .btn-action { background: #2980b9; }
+        .btn-action:hover:not(:disabled) { background: #3498db; }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 330px minmax(0, 1fr);
+            gap: 20px;
+            align-items: start;
+        }
+
+        .controls-panel {
+            padding: 20px;
+            border: 1px solid #d5f5e3;
+            border-radius: 10px;
+            background: #eafaf1;
+        }
+
+        .controls-panel h3 { margin-top: 0; color: var(--primary-color); }
+
+        .control-group {
+            margin-bottom: 14px;
+            padding: 12px 15px;
+            border-radius: 8px;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .control-group label { display: block; margin-bottom: 7px; font-size: 0.88rem; font-weight: 600; }
+        .control-group select, .control-group input { width: 100%; font-family: inherit; accent-color: var(--primary-color); }
+        .control-group select { padding: 7px; border: 1px solid #ccd4d8; border-radius: 5px; }
+        .val-display { float: right; color: var(--primary-color); font-family: monospace; font-size: 1.1rem; }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 7px;
+            margin-bottom: 14px;
+        }
+
+        .metric {
+            padding: 9px 4px;
+            border-radius: 8px;
+            color: white;
+            text-align: center;
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+        }
+
+        .metric small { display: block; font-size: 0.65rem; opacity: 0.9; }
+        .metric strong { font-family: monospace; font-size: 1.15rem; }
+
+        .step-panel {
+            margin-top: 14px;
+            padding: 15px;
+            min-height: 126px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #34495e, #2c3e50);
+            color: white;
+        }
+
+        .step-panel h4 { margin: 0 0 8px; color: #7fffd4; }
+        .step-panel p { margin: 0; color: #ecf0f1; font-size: 0.84rem; line-height: 1.5; }
+
+        .legend-guide { margin-top: 12px; font-size: 0.74rem; line-height: 1.8; color: #59666d; }
+        .dot { display: inline-block; width: 10px; height: 10px; margin: 0 3px 0 7px; border-radius: 50%; vertical-align: middle; }
+        .dot:first-child { margin-left: 0; }
+        .dot-core { border: 2px solid #263238; background: #1abc9c; }
+        .dot-border { background: #1abc9c; }
+        .dot-noise { border-radius: 0; background: #263238; transform: rotate(45deg); }
+
+        .chart-container { min-height: 610px; padding: 8px; border: 1px solid #eee; border-radius: 10px; background: white; }
+        #chartScatter { width: 100%; height: 590px; }
+
+        @media (max-width: 900px) {
+            body { padding: 10px; }
+            .container { width: 100%; padding: 18px; }
+            .main-layout { grid-template-columns: 1fr; }
+            .chart-container { min-height: 470px; }
+            #chartScatter { height: 450px; }
+        }
+    </style>
+</head>
+
+<body>
+    <main class="container">
+        <a href="../index.html" class="btn">← Volver al Menú</a>
+
+        <header>
+            <h1>🧭 DBSCAN paso a paso</h1>
+            <p class="subtitle">Observa cómo una zona densa crece hasta formar un clúster y cómo aparecen los puntos de ruido.</p>
+        </header>
+
+        <div class="main-layout">
+            <aside class="controls-panel">
+                <h3>Simulador</h3>
+
+                <div class="metrics-grid">
+                    <div class="metric"><small>Clústeres</small><strong id="val_clusters">0</strong></div>
+                    <div class="metric"><small>Visitados</small><strong id="val_visited">0</strong></div>
+                    <div class="metric"><small>Ruido</small><strong id="val_noise">0</strong></div>
+                </div>
+
+                <div class="control-group">
+                    <label for="sel_dataset">Dataset</label>
+                    <select id="sel_dataset">
+                        <option value="blobs">Blobs (grupos esféricos)</option>
+                        <option value="aniso">Anisotrópicos (alargados)</option>
+                        <option value="moons" selected>Lunas</option>
+                        <option value="circles">Círculos concéntricos</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="in_epsilon">Radio ε <span id="val_epsilon" class="val-display">0.35</span></label>
+                    <input type="range" id="in_epsilon" min="0.15" max="1.50" step="0.05" value="0.35">
+                </div>
+
+                <div class="control-group">
+                    <label for="in_minpts">Mínimo de puntos <span id="val_minpts" class="val-display">5</span></label>
+                    <input type="range" id="in_minpts" min="2" max="15" step="1" value="5">
+                </div>
+
+                <div style="display:flex; gap:8px;">
+                    <button id="btn_reset" class="btn" style="flex:1; padding:8px;">↻ Reiniciar</button>
+                    <button id="btn_step" class="btn btn-action" style="flex:1; padding:8px;">👣 Un paso</button>
+                </div>
+
+                <div class="step-panel" aria-live="polite">
+                    <h4 id="step_title">Listo para comenzar</h4>
+                    <p id="step_text">Cada clic visitará un punto. Si encuentra suficientes vecinos, DBSCAN iniciará o expandirá un clúster.</p>
+                </div>
+
+                <div class="legend-guide">
+                    <span class="dot dot-core"></span>Núcleo
+                    <span class="dot dot-border"></span>Borde
+                    <span class="dot dot-noise"></span>Ruido
+                </div>
+            </aside>
+
+            <section class="chart-container">
+                <div id="chartScatter" role="img" aria-label="Visualización del proceso de agrupamiento DBSCAN"></div>
+            </section>
+        </div>
+    </main>
+
+    <script>
+        const N_POINTS = 240;
+        const COLORS = ['#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6', '#e67e22', '#00a8a8'];
+        let X = [];
+        let labels = [];
+        let visited = [];
+        let pointTypes = [];
+        let expansionQueue = [];
+        let queued = new Set();
+        let currentCluster = null;
+        let clusterCount = 0;
+        let activeIndex = null;
+        let activeNeighbors = [];
+        let finished = false;
+
+        const datasetSelect = document.getElementById('sel_dataset');
+        const epsilonInput = document.getElementById('in_epsilon');
+        const minPtsInput = document.getElementById('in_minpts');
+        const stepButton = document.getElementById('btn_step');
+
+        function normalRandom() {
+            const u1 = Math.max(Math.random(), Number.EPSILON);
+            const u2 = Math.random();
+            return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+        }
+
+        function makeBlobs(n, std = 0.65) {
+            const centers = [[-3, -2.5], [3, 2.5], [-2.5, 3]];
+            const points = [];
+            for (let i = 0; i < n; i++) {
+                const center = centers[i % centers.length];
+                points.push([center[0] + normalRandom() * std, center[1] + normalRandom() * std]);
+            }
+            return points;
+        }
+
+        function makeAnisotropic(n) {
+            return makeBlobs(n, 0.8).map(([x, y]) => [0.65 * x - 0.55 * y, -0.25 * x + 0.85 * y]);
+        }
+
+        function makeMoons(n, noise = 0.12) {
+            const points = [];
+            for (let i = 0; i < n / 2; i++) {
+                const t = Math.PI * Math.random();
+                points.push([Math.cos(t) + normalRandom() * noise, Math.sin(t) + normalRandom() * noise]);
+            }
+            for (let i = 0; i < n / 2; i++) {
+                const t = Math.PI * Math.random();
+                points.push([1 - Math.cos(t) + normalRandom() * noise, 0.5 - Math.sin(t) + normalRandom() * noise]);
+            }
+            return points;
+        }
+
+        function makeCircles(n, noise = 0.06, factor = 0.48) {
+            const points = [];
+            for (let i = 0; i < n / 2; i++) {
+                const t = 2 * Math.PI * Math.random();
+                points.push([Math.cos(t) + normalRandom() * noise, Math.sin(t) + normalRandom() * noise]);
+            }
+            for (let i = 0; i < n / 2; i++) {
+                const t = 2 * Math.PI * Math.random();
+                points.push([factor * Math.cos(t) + normalRandom() * noise, factor * Math.sin(t) + normalRandom() * noise]);
+            }
+            return points;
+        }
+
+        function generateData() {
+            const type = datasetSelect.value;
+            if (type === 'blobs') X = makeBlobs(N_POINTS);
+            else if (type === 'aniso') X = makeAnisotropic(N_POINTS);
+            else if (type === 'circles') X = makeCircles(N_POINTS);
+            else X = makeMoons(N_POINTS);
+        }
+
+        function resetDBSCAN() {
+            labels = Array(X.length).fill(null);
+            visited = Array(X.length).fill(false);
+            pointTypes = Array(X.length).fill('unvisited');
+            expansionQueue = [];
+            queued = new Set();
+            currentCluster = null;
+            clusterCount = 0;
+            activeIndex = null;
+            activeNeighbors = [];
+            finished = false;
+            stepButton.disabled = false;
+            setExplanation('Listo para comenzar', 'Cada clic visitará un punto. Si encuentra suficientes vecinos, DBSCAN iniciará o expandirá un clúster.');
+            updateMetrics();
+            plotScatter();
+        }
+
+        function regionQuery(index) {
+            const epsilon = Number(epsilonInput.value);
+            const epsilonSquared = epsilon * epsilon;
+            const [x, y] = X[index];
+            const neighbors = [];
+            for (let i = 0; i < X.length; i++) {
+                const dx = X[i][0] - x;
+                const dy = X[i][1] - y;
+                if (dx * dx + dy * dy <= epsilonSquared) neighbors.push(i);
+            }
+            return neighbors;
+        }
+
+        function enqueueNeighbors(neighbors, sourceIndex) {
+            for (const index of neighbors) {
+                const needsWork = !visited[index] || labels[index] === null || labels[index] === -1;
+                if (index !== sourceIndex && needsWork && !queued.has(index)) {
+                    expansionQueue.push(index);
+                    queued.add(index);
+                }
+            }
+        }
+
+        function startFromUnvisited() {
+            const index = visited.findIndex(value => !value);
+            if (index === -1) {
+                finishDBSCAN();
+                return;
+            }
+
+            activeIndex = index;
+            activeNeighbors = regionQuery(index);
+            visited[index] = true;
+            const isCore = activeNeighbors.length >= Number(minPtsInput.value);
+
+            if (!isCore) {
+                labels[index] = -1;
+                pointTypes[index] = 'noise';
+                setExplanation(
+                    `Punto ${index + 1}: ruido provisional`,
+                    `Tiene ${activeNeighbors.length} punto(s) dentro de ε, menos que MinPts. Más adelante aún podría convertirse en punto de borde.`
+                );
+                return;
+            }
+
+            currentCluster = clusterCount;
+            clusterCount += 1;
+            labels[index] = currentCluster;
+            pointTypes[index] = 'core';
+            expansionQueue = [];
+            queued = new Set();
+            enqueueNeighbors(activeNeighbors, index);
+            setExplanation(
+                `Nuevo clúster ${currentCluster + 1}`,
+                `El punto ${index + 1} es núcleo: encontró ${activeNeighbors.length} puntos dentro de ε. Sus vecinos quedan en la cola de expansión.`
+            );
+        }
+
+        function expandClusterOnePoint() {
+            const index = expansionQueue.shift();
+            queued.delete(index);
+            activeIndex = index;
+            activeNeighbors = regionQuery(index);
+            const wasNoise = labels[index] === -1;
+            let isCore = false;
+
+            if (!visited[index]) {
+                visited[index] = true;
+                isCore = activeNeighbors.length >= Number(minPtsInput.value);
+                if (isCore) enqueueNeighbors(activeNeighbors, index);
+            } else {
+                isCore = pointTypes[index] === 'core';
+            }
+
+            if (labels[index] === null || labels[index] === -1) labels[index] = currentCluster;
+            if (isCore) pointTypes[index] = 'core';
+            else if (labels[index] === currentCluster) pointTypes[index] = 'border';
+
+            const role = isCore ? 'núcleo' : 'borde';
+            const recovered = wasNoise ? ' Antes era ruido provisional y ahora se incorpora al clúster.' : '';
+            let detail = `Tiene ${activeNeighbors.length} vecino(s) y se incorpora como punto de ${role}.${recovered}`;
+
+            if (expansionQueue.length === 0) {
+                detail += ` La expansión del clúster ${currentCluster + 1} terminó; el siguiente paso buscará otra zona densa.`;
+                currentCluster = null;
+            } else {
+                detail += ` Quedan ${expansionQueue.length} candidato(s) por explorar en este clúster.`;
+            }
+
+            setExplanation(`Expansión: punto ${index + 1}`, detail);
+        }
+
+        function stepDBSCAN() {
+            if (finished) return;
+            if (expansionQueue.length > 0 && currentCluster !== null) expandClusterOnePoint();
+            else startFromUnvisited();
+            updateMetrics();
+            plotScatter();
+        }
+
+        function finishDBSCAN() {
+            finished = true;
+            activeIndex = null;
+            activeNeighbors = [];
+            stepButton.disabled = true;
+            setExplanation('Proceso terminado', `DBSCAN encontró ${clusterCount} clúster(es). Los puntos que no quedaron conectados a una región densa permanecen como ruido.`);
+        }
+
+        function setExplanation(title, text) {
+            document.getElementById('step_title').textContent = title;
+            document.getElementById('step_text').textContent = text;
+        }
+
+        function updateMetrics() {
+            document.getElementById('val_clusters').textContent = clusterCount;
+            document.getElementById('val_visited').textContent = `${visited.filter(Boolean).length}/${X.length}`;
+            document.getElementById('val_noise').textContent = labels.filter(label => label === -1).length;
+        }
+
+        function traceFor(indices, name, color, symbol, size, lineWidth = 0) {
+            return {
+                x: indices.map(i => X[i][0]),
+                y: indices.map(i => X[i][1]),
+                text: indices.map(i => `Punto ${i + 1}`),
+                hovertemplate: '%{text}<extra>' + name + '</extra>',
+                mode: 'markers',
+                type: 'scatter',
+                name,
+                marker: { color, symbol, size, opacity: 0.82, line: { color: '#263238', width: lineWidth } }
+            };
+        }
+
+        function dataBounds() {
+            const xs = X.map(point => point[0]);
+            const ys = X.map(point => point[1]);
+            const padding = Number(epsilonInput.value) + 0.35;
+            return {
+                x: [Math.min(...xs) - padding, Math.max(...xs) + padding],
+                y: [Math.min(...ys) - padding, Math.max(...ys) + padding]
+            };
+        }
+
+        function plotScatter() {
+            const traces = [];
+            const unvisited = X.map((_, i) => i).filter(i => !visited[i] && labels[i] === null);
+            if (unvisited.length) traces.push(traceFor(unvisited, 'Sin visitar', '#aeb6bf', 'circle', 7));
+
+            for (let cluster = 0; cluster < clusterCount; cluster++) {
+                const core = X.map((_, i) => i).filter(i => labels[i] === cluster && pointTypes[i] === 'core');
+                const border = X.map((_, i) => i).filter(i => labels[i] === cluster && pointTypes[i] === 'border');
+                if (border.length) traces.push(traceFor(border, `Clúster ${cluster + 1} · borde`, COLORS[cluster % COLORS.length], 'circle', 7));
+                if (core.length) traces.push(traceFor(core, `Clúster ${cluster + 1} · núcleo`, COLORS[cluster % COLORS.length], 'circle', 10, 2));
+            }
+
+            const noise = X.map((_, i) => i).filter(i => labels[i] === -1);
+            if (noise.length) traces.push(traceFor(noise, 'Ruido provisional', '#263238', 'x', 10));
+
+            if (activeNeighbors.length) {
+                traces.push(traceFor(activeNeighbors, 'Vecindario ε', '#f39c12', 'circle-open', 13, 2));
+            }
+            if (activeIndex !== null) {
+                traces.push(traceFor([activeIndex], 'Punto activo', '#f39c12', 'star', 18, 2));
+            }
+
+            const shapes = [];
+            if (activeIndex !== null) {
+                const epsilon = Number(epsilonInput.value);
+                const [x, y] = X[activeIndex];
+                shapes.push({
+                    type: 'circle', xref: 'x', yref: 'y',
+                    x0: x - epsilon, x1: x + epsilon, y0: y - epsilon, y1: y + epsilon,
+                    line: { color: '#f39c12', width: 2, dash: 'dot' },
+                    fillcolor: 'rgba(243, 156, 18, 0.08)', layer: 'below'
+                });
+            }
+
+            const bounds = dataBounds();
+            Plotly.react('chartScatter', traces, {
+                title: 'Vecindarios y expansión de clústeres',
+                margin: { t: 48, b: 45, l: 48, r: 20 },
+                xaxis: { range: bounds.x, zeroline: false, gridcolor: '#edf0f2' },
+                yaxis: { range: bounds.y, zeroline: false, gridcolor: '#edf0f2', scaleanchor: 'x', scaleratio: 1 },
+                legend: { orientation: 'h', y: -0.14, font: { size: 10 } },
+                shapes,
+                hovermode: 'closest'
+            }, { responsive: true, displaylogo: false });
+        }
+
+        datasetSelect.addEventListener('change', () => { generateData(); resetDBSCAN(); });
+        epsilonInput.addEventListener('input', () => { document.getElementById('val_epsilon').textContent = Number(epsilonInput.value).toFixed(2); });
+        epsilonInput.addEventListener('change', resetDBSCAN);
+        minPtsInput.addEventListener('input', () => { document.getElementById('val_minpts').textContent = minPtsInput.value; });
+        minPtsInput.addEventListener('change', resetDBSCAN);
+        document.getElementById('btn_reset').addEventListener('click', resetDBSCAN);
+        stepButton.addEventListener('click', stepDBSCAN);
+
+        window.addEventListener('load', () => { generateData(); resetDBSCAN(); });
+        window.addEventListener('resize', () => Plotly.Plots.resize('chartScatter'));
+    </script>
+</body>
+
+</html>

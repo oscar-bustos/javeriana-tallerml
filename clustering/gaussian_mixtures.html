@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gaussian Mixtures paso a paso</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #8e44ad;
+            --secondary-color: #2c3e50;
+            --accent-color: #af7ac5;
+            --bg-light: #f4f7f6;
+            --card-bg: #ffffff;
+            --shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            background: var(--bg-light);
+            color: var(--secondary-color);
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .container {
+            width: 95%;
+            max-width: 1500px;
+            padding: 30px;
+            border-radius: 15px;
+            background: var(--card-bg);
+            box-shadow: var(--shadow);
+        }
+
+        header { margin-bottom: 20px; text-align: center; }
+        h1 { margin: 0; font-size: 1.8rem; }
+        .subtitle { color: #6b7b83; font-size: 0.95rem; }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            margin-bottom: 10px;
+            padding: 10px 20px;
+            border: 0;
+            border-radius: 30px;
+            background: var(--secondary-color);
+            color: white;
+            font: 600 0.9rem 'Poppins', sans-serif;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn:hover:not(:disabled) { transform: translateY(-2px); background: #34495e; }
+        .btn:disabled { cursor: not-allowed; background: #bdc3c7; box-shadow: none; }
+        .btn-action { background: #2980b9; }
+        .btn-action:hover:not(:disabled) { background: #3498db; }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 340px minmax(0, 1fr);
+            gap: 20px;
+            align-items: start;
+        }
+
+        .controls-panel {
+            padding: 20px;
+            border: 1px solid #ebdef0;
+            border-radius: 10px;
+            background: #f5eef8;
+        }
+
+        .controls-panel h3 { margin-top: 0; color: var(--primary-color); }
+
+        .control-group {
+            margin-bottom: 14px;
+            padding: 12px 15px;
+            border-radius: 8px;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .control-group label { display: block; margin-bottom: 7px; font-size: 0.88rem; font-weight: 600; }
+        .control-group select, .control-group input { width: 100%; font-family: inherit; accent-color: var(--primary-color); }
+        .control-group select { padding: 7px; border: 1px solid #ccd4d8; border-radius: 5px; }
+        .val-display { float: right; color: var(--primary-color); font-family: monospace; font-size: 1.1rem; }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: 0.8fr 0.8fr 1.4fr;
+            gap: 7px;
+            margin-bottom: 14px;
+        }
+
+        .metric {
+            overflow: hidden;
+            padding: 9px 4px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            color: white;
+            text-align: center;
+        }
+
+        .metric small { display: block; font-size: 0.65rem; opacity: 0.9; }
+        .metric strong { display: block; overflow: hidden; font-family: monospace; font-size: 1.05rem; text-overflow: ellipsis; }
+
+        .step-panel {
+            margin-top: 14px;
+            padding: 15px;
+            min-height: 140px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #34495e, #2c3e50);
+            color: white;
+        }
+
+        .step-panel h4 { margin: 0 0 8px; color: #e8b8fa; }
+        .step-panel p { margin: 0; color: #ecf0f1; font-size: 0.84rem; line-height: 1.5; }
+
+        .weights-panel {
+            margin-top: 12px;
+            padding: 11px 13px;
+            border-radius: 8px;
+            background: white;
+            font-size: 0.75rem;
+            line-height: 1.8;
+        }
+
+        .weight-row { display: flex; align-items: center; gap: 7px; }
+        .swatch { width: 10px; height: 10px; flex: 0 0 auto; border-radius: 50%; }
+        .weight-bar { height: 6px; flex: 1; overflow: hidden; border-radius: 4px; background: #e9ecef; }
+        .weight-fill { height: 100%; border-radius: 4px; }
+
+        .chart-container { min-height: 610px; padding: 8px; border: 1px solid #eee; border-radius: 10px; background: white; }
+        #chartScatter { width: 100%; height: 590px; }
+
+        @media (max-width: 900px) {
+            body { padding: 10px; }
+            .container { width: 100%; padding: 18px; }
+            .main-layout { grid-template-columns: 1fr; }
+            .chart-container { min-height: 470px; }
+            #chartScatter { height: 450px; }
+        }
+    </style>
+</head>
+
+<body>
+    <main class="container">
+        <a href="../index.html" class="btn">← Volver al Menú</a>
+
+        <header>
+            <h1>🎨 Gaussian Mixtures paso a paso</h1>
+            <p class="subtitle">Mira cómo Expectation-Maximization alterna entre probabilidades suaves y gaussianas que se adaptan a los datos.</p>
+        </header>
+
+        <div class="main-layout">
+            <aside class="controls-panel">
+                <h3>Simulador EM</h3>
+
+                <div class="metrics-grid">
+                    <div class="metric"><small>Iteración</small><strong id="val_iteration">0</strong></div>
+                    <div class="metric"><small>Siguiente</small><strong id="val_phase">E</strong></div>
+                    <div class="metric"><small>Log-verosimilitud</small><strong id="val_likelihood">—</strong></div>
+                </div>
+
+                <div class="control-group">
+                    <label for="sel_dataset">Dataset</label>
+                    <select id="sel_dataset">
+                        <option value="blobs" selected>Blobs (grupos esféricos)</option>
+                        <option value="aniso">Anisotrópicos (alargados)</option>
+                        <option value="moons">Lunas</option>
+                        <option value="circles">Círculos concéntricos</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="in_k">Componentes gaussianos (K) <span id="val_k" class="val-display">3</span></label>
+                    <input type="range" id="in_k" min="1" max="6" step="1" value="3">
+                </div>
+
+                <div style="display:flex; gap:8px;">
+                    <button id="btn_reset" class="btn" style="flex:1; padding:8px;">🎲 Reiniciar</button>
+                    <button id="btn_step" class="btn btn-action" style="flex:1; padding:8px;">Ejecutar paso E</button>
+                </div>
+
+                <div class="step-panel" aria-live="polite">
+                    <h4 id="step_title">Gaussianas iniciales</h4>
+                    <p id="step_text">Las cruces son las medias y las elipses muestran la forma de cada componente. Ejecuta el paso E para estimar pertenencias.</p>
+                </div>
+
+                <div id="weights_panel" class="weights-panel" aria-label="Pesos de los componentes"></div>
+            </aside>
+
+            <section class="chart-container">
+                <div id="chartScatter" role="img" aria-label="Visualización del algoritmo Gaussian Mixtures"></div>
+            </section>
+        </div>
+    </main>
+
+    <script>
+        const N_POINTS = 240;
+        const REGULARIZATION = 0.02;
+        const MAX_ITERATIONS = 50;
+        const CONVERGENCE_TOLERANCE = 0.02;
+        const COLORS = [
+            [52, 152, 219], [231, 76, 60], [46, 204, 113],
+            [241, 196, 15], [155, 89, 182], [230, 126, 34]
+        ];
+
+        let X = [];
+        let components = [];
+        let responsibilities = null;
+        let phase = 'E';
+        let iteration = 0;
+        let logLikelihood = null;
+        let previousLikelihood = null;
+        let converged = false;
+
+        const datasetSelect = document.getElementById('sel_dataset');
+        const kInput = document.getElementById('in_k');
+        const stepButton = document.getElementById('btn_step');
+
+        function normalRandom() {
+            const u1 = Math.max(Math.random(), Number.EPSILON);
+            const u2 = Math.random();
+            return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+        }
+
+        function makeBlobs(n, std = 0.7) {
+            const centers = [[-3, -2.5], [3, 2.5], [-2.5, 3]];
+            const points = [];
+            for (let i = 0; i < n; i++) {
+                const center = centers[i % centers.length];
+                points.push([center[0] + normalRandom() * std, center[1] + normalRandom() * std]);
+            }
+            return points;
+        }
+
+        function makeAnisotropic(n) {
+            return makeBlobs(n, 0.8).map(([x, y]) => [0.65 * x - 0.55 * y, -0.25 * x + 0.85 * y]);
+        }
+
+        function makeMoons(n, noise = 0.12) {
+            const points = [];
+            for (let i = 0; i < n / 2; i++) {
+                const t = Math.PI * Math.random();
+                points.push([Math.cos(t) + normalRandom() * noise, Math.sin(t) + normalRandom() * noise]);
+            }
+            for (let i = 0; i < n / 2; i++) {
+                const t = Math.PI * Math.random();
+                points.push([1 - Math.cos(t) + normalRandom() * noise, 0.5 - Math.sin(t) + normalRandom() * noise]);
+            }
+            return points;
+        }
+
+        function makeCircles(n, noise = 0.06, factor = 0.48) {
+            const points = [];
+            for (let i = 0; i < n / 2; i++) {
+                const t = 2 * Math.PI * Math.random();
+                points.push([Math.cos(t) + normalRandom() * noise, Math.sin(t) + normalRandom() * noise]);
+            }
+            for (let i = 0; i < n / 2; i++) {
+                const t = 2 * Math.PI * Math.random();
+                points.push([factor * Math.cos(t) + normalRandom() * noise, factor * Math.sin(t) + normalRandom() * noise]);
+            }
+            return points;
+        }
+
+        function generateData() {
+            const type = datasetSelect.value;
+            if (type === 'blobs') X = makeBlobs(N_POINTS);
+            else if (type === 'aniso') X = makeAnisotropic(N_POINTS);
+            else if (type === 'circles') X = makeCircles(N_POINTS);
+            else X = makeMoons(N_POINTS);
+        }
+
+        function covarianceOfData() {
+            const meanX = X.reduce((sum, point) => sum + point[0], 0) / X.length;
+            const meanY = X.reduce((sum, point) => sum + point[1], 0) / X.length;
+            let xx = 0;
+            let xy = 0;
+            let yy = 0;
+            for (const [x, y] of X) {
+                xx += (x - meanX) ** 2;
+                xy += (x - meanX) * (y - meanY);
+                yy += (y - meanY) ** 2;
+            }
+            const scale = 0.55 / X.length;
+            return [[xx * scale + REGULARIZATION, xy * scale], [xy * scale, yy * scale + REGULARIZATION]];
+        }
+
+        function initGMM() {
+            const k = Number(kInput.value);
+            const baseCovariance = covarianceOfData();
+            const chosen = new Set();
+            components = [];
+
+            while (chosen.size < k) chosen.add(Math.floor(Math.random() * X.length));
+            for (const index of chosen) {
+                components.push({
+                    mean: [...X[index]],
+                    covariance: baseCovariance.map(row => [...row]),
+                    weight: 1 / k
+                });
+            }
+
+            responsibilities = null;
+            phase = 'E';
+            iteration = 0;
+            logLikelihood = null;
+            previousLikelihood = null;
+            converged = false;
+            stepButton.disabled = false;
+            setExplanation('Gaussianas iniciales', 'Las cruces son las medias y las elipses muestran la forma de cada componente. Ejecuta el paso E para estimar pertenencias.');
+            updateInterface();
+            plotScatter();
+        }
+
+        function logGaussian(point, component) {
+            const dx = point[0] - component.mean[0];
+            const dy = point[1] - component.mean[1];
+            const a = component.covariance[0][0];
+            const b = component.covariance[0][1];
+            const c = component.covariance[1][1];
+            const determinant = Math.max(a * c - b * b, 1e-10);
+            const quadratic = (c * dx * dx - 2 * b * dx * dy + a * dy * dy) / determinant;
+            return -Math.log(2 * Math.PI) - 0.5 * Math.log(determinant) - 0.5 * quadratic;
+        }
+
+        function expectationStep() {
+            responsibilities = [];
+            let likelihood = 0;
+
+            for (const point of X) {
+                const logScores = components.map(component => Math.log(Math.max(component.weight, 1e-12)) + logGaussian(point, component));
+                const maxLog = Math.max(...logScores);
+                const exponentials = logScores.map(value => Math.exp(value - maxLog));
+                const normalizer = exponentials.reduce((sum, value) => sum + value, 0);
+                responsibilities.push(exponentials.map(value => value / normalizer));
+                likelihood += maxLog + Math.log(normalizer);
+            }
+
+            return likelihood;
+        }
+
+        function maximizationStep() {
+            const k = components.length;
+            const counts = Array(k).fill(0);
+            for (const row of responsibilities) {
+                for (let j = 0; j < k; j++) counts[j] += row[j];
+            }
+
+            const fallbackCovariance = covarianceOfData();
+            for (let j = 0; j < k; j++) {
+                if (counts[j] < 1e-6) {
+                    components[j] = {
+                        mean: [...X[Math.floor(Math.random() * X.length)]],
+                        covariance: fallbackCovariance.map(row => [...row]),
+                        weight: 1 / X.length
+                    };
+                    continue;
+                }
+
+                let meanX = 0;
+                let meanY = 0;
+                for (let i = 0; i < X.length; i++) {
+                    meanX += responsibilities[i][j] * X[i][0];
+                    meanY += responsibilities[i][j] * X[i][1];
+                }
+                meanX /= counts[j];
+                meanY /= counts[j];
+
+                let xx = 0;
+                let xy = 0;
+                let yy = 0;
+                for (let i = 0; i < X.length; i++) {
+                    const dx = X[i][0] - meanX;
+                    const dy = X[i][1] - meanY;
+                    const responsibility = responsibilities[i][j];
+                    xx += responsibility * dx * dx;
+                    xy += responsibility * dx * dy;
+                    yy += responsibility * dy * dy;
+                }
+
+                components[j] = {
+                    mean: [meanX, meanY],
+                    covariance: [
+                        [xx / counts[j] + REGULARIZATION, xy / counts[j]],
+                        [xy / counts[j], yy / counts[j] + REGULARIZATION]
+                    ],
+                    weight: counts[j] / X.length
+                };
+            }
+
+            const weightSum = components.reduce((sum, component) => sum + component.weight, 0);
+            for (const component of components) component.weight /= weightSum;
+        }
+
+        function stepGMM() {
+            if (converged) return;
+
+            if (phase === 'E') {
+                const nextLikelihood = expectationStep();
+                const improvement = previousLikelihood === null ? null : nextLikelihood - previousLikelihood;
+                logLikelihood = nextLikelihood;
+
+                if (previousLikelihood !== null && Math.abs(improvement) < CONVERGENCE_TOLERANCE) {
+                    converged = true;
+                    stepButton.disabled = true;
+                    setExplanation('Convergencia alcanzada', `Las probabilidades casi no cambiaron: la mejora fue ${improvement.toFixed(4)}. Las elipses representan el resultado final.`);
+                } else if (iteration >= MAX_ITERATIONS) {
+                    converged = true;
+                    stepButton.disabled = true;
+                    setExplanation('Máximo de iteraciones', 'El proceso se detuvo para mantener la demostración breve. Puedes reiniciar para probar otra inicialización.');
+                } else {
+                    previousLikelihood = nextLikelihood;
+                    phase = 'M';
+                    const changeText = improvement === null ? '' : ` La log-verosimilitud cambió ${improvement.toFixed(2)}.`;
+                    setExplanation('Paso E · Expectation', `Cada punto reparte su pertenencia entre las gaussianas. Los colores mezclados indican incertidumbre.${changeText}`);
+                }
+            } else {
+                maximizationStep();
+                iteration += 1;
+                phase = 'E';
+                setExplanation('Paso M · Maximization', 'Cada gaussiana actualizó su media, tamaño, orientación y peso usando las pertenencias del paso E. Ahora vuelve a estimar probabilidades.');
+            }
+
+            updateInterface();
+            plotScatter();
+        }
+
+        function setExplanation(title, text) {
+            document.getElementById('step_title').textContent = title;
+            document.getElementById('step_text').textContent = text;
+        }
+
+        function rgb(color, alpha = 1) {
+            return alpha === 1 ? `rgb(${color[0]}, ${color[1]}, ${color[2]})` : `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${alpha})`;
+        }
+
+        function mixedPointColor(row) {
+            const mixed = [0, 0, 0];
+            for (let j = 0; j < row.length; j++) {
+                mixed[0] += row[j] * COLORS[j][0];
+                mixed[1] += row[j] * COLORS[j][1];
+                mixed[2] += row[j] * COLORS[j][2];
+            }
+            return `rgb(${mixed.map(Math.round).join(',')})`;
+        }
+
+        function updateInterface() {
+            document.getElementById('val_iteration').textContent = iteration;
+            document.getElementById('val_phase').textContent = converged ? '✓' : phase;
+            document.getElementById('val_likelihood').textContent = logLikelihood === null ? '—' : logLikelihood.toFixed(1);
+            stepButton.textContent = converged ? 'Proceso terminado' : `Ejecutar paso ${phase}`;
+
+            const panel = document.getElementById('weights_panel');
+            panel.innerHTML = '<strong>Peso de cada componente</strong>' + components.map((component, index) => {
+                const color = rgb(COLORS[index]);
+                const percentage = (component.weight * 100).toFixed(1);
+                return `<div class="weight-row"><span class="swatch" style="background:${color}"></span><span>G${index + 1}</span><div class="weight-bar"><div class="weight-fill" style="width:${percentage}%;background:${color}"></div></div><span>${percentage}%</span></div>`;
+            }).join('');
+        }
+
+        function ellipsePoints(component, standardDeviations = 2) {
+            const a = component.covariance[0][0];
+            const b = component.covariance[0][1];
+            const c = component.covariance[1][1];
+            const discriminant = Math.sqrt(Math.max((a - c) ** 2 + 4 * b * b, 0));
+            const lambda1 = Math.max((a + c + discriminant) / 2, REGULARIZATION);
+            const lambda2 = Math.max((a + c - discriminant) / 2, REGULARIZATION);
+            const angle = 0.5 * Math.atan2(2 * b, a - c);
+            const radius1 = standardDeviations * Math.sqrt(lambda1);
+            const radius2 = standardDeviations * Math.sqrt(lambda2);
+            const xs = [];
+            const ys = [];
+
+            for (let step = 0; step <= 80; step++) {
+                const t = 2 * Math.PI * step / 80;
+                const localX = radius1 * Math.cos(t);
+                const localY = radius2 * Math.sin(t);
+                xs.push(component.mean[0] + localX * Math.cos(angle) - localY * Math.sin(angle));
+                ys.push(component.mean[1] + localX * Math.sin(angle) + localY * Math.cos(angle));
+            }
+            return { x: xs, y: ys };
+        }
+
+        function pointHoverText(index) {
+            if (!responsibilities) return `Punto ${index + 1}`;
+            const probabilities = responsibilities[index].map((value, j) => `G${j + 1}: ${(value * 100).toFixed(1)}%`).join('<br>');
+            return `Punto ${index + 1}<br>${probabilities}`;
+        }
+
+        function dataBounds() {
+            const xs = X.map(point => point[0]);
+            const ys = X.map(point => point[1]);
+            for (const component of components) {
+                const ellipse = ellipsePoints(component);
+                xs.push(...ellipse.x);
+                ys.push(...ellipse.y);
+            }
+            return {
+                x: [Math.min(...xs) - 0.35, Math.max(...xs) + 0.35],
+                y: [Math.min(...ys) - 0.35, Math.max(...ys) + 0.35]
+            };
+        }
+
+        function plotScatter() {
+            const traces = [];
+
+            components.forEach((component, index) => {
+                const ellipse = ellipsePoints(component);
+                traces.push({
+                    x: ellipse.x,
+                    y: ellipse.y,
+                    mode: 'lines',
+                    type: 'scatter',
+                    name: `Gaussiana ${index + 1} · 2σ`,
+                    line: { color: rgb(COLORS[index]), width: 2 },
+                    fill: 'toself',
+                    fillcolor: rgb(COLORS[index], 0.10),
+                    hoverinfo: 'skip'
+                });
+            });
+
+            const pointColors = responsibilities ? responsibilities.map(mixedPointColor) : Array(X.length).fill('#95a5a6');
+            traces.push({
+                x: X.map(point => point[0]),
+                y: X.map(point => point[1]),
+                text: X.map((_, index) => pointHoverText(index)),
+                hovertemplate: '%{text}<extra></extra>',
+                mode: 'markers',
+                type: 'scatter',
+                name: responsibilities ? 'Pertenencias suaves' : 'Datos',
+                marker: { color: pointColors, size: 7, opacity: 0.78, line: { color: 'white', width: 0.4 } }
+            });
+
+            traces.push({
+                x: components.map(component => component.mean[0]),
+                y: components.map(component => component.mean[1]),
+                text: components.map((component, index) => `Media G${index + 1}<br>Peso: ${(component.weight * 100).toFixed(1)}%`),
+                hovertemplate: '%{text}<extra></extra>',
+                mode: 'markers',
+                type: 'scatter',
+                name: 'Medias',
+                marker: {
+                    color: components.map((_, index) => rgb(COLORS[index])),
+                    size: 16,
+                    symbol: 'x',
+                    line: { color: '#263238', width: 3 }
+                }
+            });
+
+            const bounds = dataBounds();
+            Plotly.react('chartScatter', traces, {
+                title: 'Componentes gaussianos y pertenencias probabilísticas',
+                margin: { t: 48, b: 45, l: 48, r: 20 },
+                xaxis: { range: bounds.x, zeroline: false, gridcolor: '#edf0f2' },
+                yaxis: { range: bounds.y, zeroline: false, gridcolor: '#edf0f2', scaleanchor: 'x', scaleratio: 1 },
+                legend: { orientation: 'h', y: -0.14, font: { size: 10 } },
+                hovermode: 'closest'
+            }, { responsive: true, displaylogo: false });
+        }
+
+        datasetSelect.addEventListener('change', () => { generateData(); initGMM(); });
+        kInput.addEventListener('input', () => { document.getElementById('val_k').textContent = kInput.value; });
+        kInput.addEventListener('change', initGMM);
+        document.getElementById('btn_reset').addEventListener('click', initGMM);
+        stepButton.addEventListener('click', stepGMM);
+
+        window.addEventListener('load', () => { generateData(); initGMM(); });
+        window.addEventListener('resize', () => Plotly.Plots.resize('chartScatter'));
+    </script>
+</body>
+
+</html>
